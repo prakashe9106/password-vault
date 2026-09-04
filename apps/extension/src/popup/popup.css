@@ -1,0 +1,172 @@
+:root {
+  color-scheme: light dark;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --bg: #0f1115;
+  --surface: #171a21;
+  --surface-2: #1f2430;
+  --border: #2a2f3a;
+  --text: #e6e8eb;
+  --muted: #93a0af;
+  --accent: #5b8dff;
+  --danger: #e5484d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 360px;
+  min-height: 420px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: var(--accent);
+  border: none;
+  color: white;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+button.danger {
+  background: var(--danger);
+}
+
+input,
+textarea,
+select {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.screen {
+  padding: 1rem;
+}
+
+.screen h2 {
+  margin-top: 0;
+  font-size: 1rem;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.8rem;
+}
+
+.row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.footer-row {
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.topbar {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.login-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.login-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  gap: 0.5rem;
+}
+
+.login-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-bottom: 0.2rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.checkbox-row input {
+  width: auto;
+  margin: 0;
+}
+
+.recovery-code {
+  font-family: ui-monospace, monospace;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem;
+  word-break: break-all;
+  margin-bottom: 0.5rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 320px;
+}
