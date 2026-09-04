@@ -1,0 +1,19 @@
+{
+  "description": "Golden test vectors for Vault Protocol v1 (see docs/spec/vault-protocol-v1.md). Any conformant client implementation (web, extension, future Android) must reproduce these exact byte outputs given the same inputs.",
+  "kdf": {
+    "algorithm": "argon2id",
+    "opslimit": 3,
+    "memlimit": 268435456,
+    "password_utf8": "correct horse battery staple",
+    "salt_hex": "000102030405060708090a0b0c0d0e0f",
+    "derived_key_base64": "qtYItYZs75B/R9XK5SntAakTAcksXV/vRuGmXjlOV0I="
+  },
+  "aead": {
+    "algorithm": "xchacha20poly1305-ietf",
+    "key_base64": "qtYItYZs75B/R9XK5SntAakTAcksXV/vRuGmXjlOV0I=",
+    "nonce_hex": "000102030405060708090a0b0c0d0e0f1011121314151617",
+    "aad_utf8": "{\"format_version\":1,\"crypto_version\":1,\"vault_id\":\"11111111-2222-3333-4444-555555555555\"}",
+    "plaintext_utf8": "hello vault",
+    "ciphertext_base64": "/xy3M2ZeFUMHcZ26vm6+ZsWJdjCgAtK8RpKt"
+  }
+}

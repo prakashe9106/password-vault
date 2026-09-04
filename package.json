@@ -1,0 +1,19 @@
+{
+  "name": "privacy-first-password-vault",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Privacy-first password vault SaaS monorepo",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter=./packages/* --filter=./apps/* build",
+    "test": "pnpm -r --filter=./packages/* test",
+    "dev:web": "pnpm --filter web dev",
+    "dev:backend": "pnpm --filter backend dev",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
