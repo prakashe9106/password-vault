@@ -37,13 +37,23 @@ export function setUnlocked(vaultId: string, vaultName: string, unlockedVault: U
   emit();
 }
 
-/** Call after any mutation: re-encrypts and persists, then notifies subscribers to re-render. */
-export async function persistAndNotify(): Promise<void> {
-  if (state.status !== "unlocked") return;
+/**
+ * Call after any mutation: re-encrypts and persists locally, notifies subscribers, and returns
+ * the raw serialized container so the caller can hand the exact same bytes to Drive sync without
+ * re-serializing (which would mint a fresh nonce/ciphertext and double-bump the revision).
+ */
+export async function persistAndNotify(): Promise<string> {
+  if (state.status !== "unlocked") throw new Error("No vault is unlocked.");
   const container = state.unlockedVault.serialize();
-  await saveContainer(state.vaultId, JSON.stringify(container), state.vaultName);
+  const raw = JSON.stringify(container);
+  await saveContainer(state.vaultId, raw, state.vaultName);
   state = { ...state, revision: state.revision + 1 };
   emit();
+  return raw;
+}
+
+export function getCurrentVaultId(): string | null {
+  return state.status === "unlocked" ? state.vaultId : null;
 }
 
 export function lockSession(): void {

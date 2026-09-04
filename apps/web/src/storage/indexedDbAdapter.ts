@@ -12,6 +12,16 @@ export interface VaultIndexEntry {
   updated_at: string;
 }
 
+/** Local-only metadata linking a vault to its Drive file. Never holds tokens or secrets. */
+export interface DriveLink {
+  vault_id: string;
+  folder_id: string;
+  file_id: string;
+  last_known_head_revision_id: string;
+  last_synced_at: string;
+  pending_upload: boolean;
+}
+
 interface VaultDB extends DBSchema {
   containers: {
     key: string;
@@ -21,10 +31,14 @@ interface VaultDB extends DBSchema {
     key: string;
     value: VaultIndexEntry;
   };
+  driveLinks: {
+    key: string;
+    value: DriveLink;
+  };
 }
 
 const DB_NAME = "privacy-first-vault";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<VaultDB>> | null = null;
 
@@ -37,6 +51,9 @@ function getDb(): Promise<IDBPDatabase<VaultDB>> {
         }
         if (!db.objectStoreNames.contains("index")) {
           db.createObjectStore("index", { keyPath: "vault_id" });
+        }
+        if (!db.objectStoreNames.contains("driveLinks")) {
+          db.createObjectStore("driveLinks", { keyPath: "vault_id" });
         }
       },
     });
@@ -73,4 +90,19 @@ export async function deleteVault(vaultId: string): Promise<void> {
     tx.objectStore("index").delete(vaultId),
     tx.done,
   ]);
+}
+
+export async function getDriveLink(vaultId: string): Promise<DriveLink | undefined> {
+  const db = await getDb();
+  return db.get("driveLinks", vaultId);
+}
+
+export async function saveDriveLink(link: DriveLink): Promise<void> {
+  const db = await getDb();
+  await db.put("driveLinks", link);
+}
+
+export async function deleteDriveLink(vaultId: string): Promise<void> {
+  const db = await getDb();
+  await db.delete("driveLinks", vaultId);
 }

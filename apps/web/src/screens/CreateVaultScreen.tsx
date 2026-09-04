@@ -2,14 +2,15 @@ import { useState } from "react";
 import { createVault, serializeContainer, unlockVault } from "@vault/core";
 import { saveContainer } from "../storage/indexedDbAdapter";
 import { setUnlocked } from "../state/sessionStore";
-
-const DEFAULT_VAULT_NAME = "My Vault";
+import { createInitialDriveFile } from "../state/syncStore";
+import { DEFAULT_VAULT_NAME } from "../constants";
 
 interface Props {
+  accessToken: string;
   onCreated: (vaultId: string, vaultName: string, recoveryCode: string) => void;
 }
 
-export default function CreateVaultScreen({ onCreated }: Props) {
+export default function CreateVaultScreen({ accessToken, onCreated }: Props) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,8 +33,10 @@ export default function CreateVaultScreen({ onCreated }: Props) {
     try {
       const { container, recoveryCode } = await createVault(password);
       const unlockedVault = await unlockVault(container, password);
+      const raw = serializeContainer(container);
 
-      await saveContainer(container.vault_id, serializeContainer(container), DEFAULT_VAULT_NAME);
+      await saveContainer(container.vault_id, raw, DEFAULT_VAULT_NAME);
+      await createInitialDriveFile(accessToken, container.vault_id, raw);
       setUnlocked(container.vault_id, DEFAULT_VAULT_NAME, unlockedVault);
 
       onCreated(container.vault_id, DEFAULT_VAULT_NAME, recoveryCode);

@@ -6,11 +6,22 @@ interface Props {
   onUpdateSettings: (patch: Partial<VaultSettings>) => void;
   onChangePassword: (newPassword: string) => Promise<void>;
   onClose: () => void;
+  driveEmail: string | null;
+  lastSyncedAt: string | null;
+  onDisconnectDrive: () => void;
 }
 
 const AUTO_LOCK_OPTIONS = [1, 5, 15, 30, 0];
 
-export default function SettingsScreen({ settings, onUpdateSettings, onChangePassword, onClose }: Props) {
+export default function SettingsScreen({
+  settings,
+  onUpdateSettings,
+  onChangePassword,
+  onClose,
+  driveEmail,
+  lastSyncedAt,
+  onDisconnectDrive,
+}: Props) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [status, setStatus] = useState<string | null>(null);
@@ -75,6 +86,15 @@ export default function SettingsScreen({ settings, onUpdateSettings, onChangePas
           {status && <p className="hint-text">{status}</p>}
           <button type="submit">Update password</button>
         </form>
+
+        <h1 style={{ fontSize: "1rem", marginTop: "1.5rem" }}>Storage</h1>
+        <p className="hint-text">
+          {driveEmail ? `Connected as ${driveEmail}` : "Not connected"}
+          {lastSyncedAt && <> · last synced {new Date(lastSyncedAt).toLocaleString()}</>}
+        </p>
+        <button className="secondary" onClick={onDisconnectDrive}>
+          Disconnect Google Drive
+        </button>
 
         <div className="row" style={{ marginTop: "1.5rem" }}>
           <button className="secondary" onClick={onClose}>

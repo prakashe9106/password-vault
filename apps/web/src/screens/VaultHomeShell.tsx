@@ -3,18 +3,34 @@ import type { Login } from "@vault/core";
 import { changeMasterPassword } from "@vault/core";
 import { lockSession, persistAndNotify, useSession } from "../state/sessionStore";
 import { useAutoLock } from "../state/autoLock";
+import { useAuthState } from "../lib/googleAuth";
+import { resolveConflictKeepMine, resolveConflictUseTheirs, uploadNow, useSyncState } from "../state/syncStore";
+import { loadContainer } from "../storage/indexedDbAdapter";
 import FolderSidebar from "../components/FolderSidebar";
 import SearchBar from "../components/SearchBar";
 import LoginListItem from "../components/LoginListItem";
 import LoginEditorScreen, { type LoginFormValues } from "./LoginEditorScreen";
 import SettingsScreen from "./SettingsScreen";
+import ConflictResolutionScreen from "./ConflictResolutionScreen";
 
 interface Props {
   onLocked: () => void;
+  onDisconnectDrive: () => void;
 }
 
-export default function VaultHomeShell({ onLocked }: Props) {
+const SYNC_STATUS_LABEL: Record<string, string> = {
+  disconnected: "Not synced",
+  syncing: "Syncing…",
+  synced: "Synced",
+  "offline-pending": "Offline — will sync when online",
+  conflict: "Sync conflict — resolve",
+  error: "Sync error",
+};
+
+export default function VaultHomeShell({ onLocked, onDisconnectDrive }: Props) {
   const session = useSession();
+  const { accessToken, profile } = useAuthState();
+  const syncState = useSyncState();
   const [selectedFolderId, setSelectedFolderId] = useState<string | null | "all">("all");
   const [query, setQuery] = useState("");
   const [editorState, setEditorState] = useState<"closed" | "new" | Login>("closed");
@@ -33,12 +49,17 @@ export default function VaultHomeShell({ onLocked }: Props) {
     return null;
   }
 
-  const { unlockedVault } = session;
+  const { unlockedVault, vaultId } = session;
   const allLogins = query.trim() ? unlockedVault.search(query) : unlockedVault.logins;
   const visibleLogins = allLogins.filter((login) => {
     if (selectedFolderId === "all") return true;
     return login.folder_id === selectedFolderId;
   });
+
+  async function persistAndSync(): Promise<void> {
+    const raw = await persistAndNotify();
+    await uploadNow(accessToken, vaultId, raw);
+  }
 
   async function handleSaveLogin(values: LoginFormValues) {
     if (editorState === "new") {
@@ -47,25 +68,25 @@ export default function VaultHomeShell({ onLocked }: Props) {
       unlockedVault.updateLogin(editorState.id, values);
     }
     setEditorState("closed");
-    await persistAndNotify();
+    await persistAndSync();
   }
 
   async function handleDeleteLogin(id: string) {
     if (!confirm("Delete this login? This can't be undone.")) return;
     unlockedVault.deleteLogin(id);
-    await persistAndNotify();
+    await persistAndSync();
   }
 
   async function handleAddFolder(name: string) {
     unlockedVault.addFolder(name);
-    await persistAndNotify();
+    await persistAndSync();
   }
 
   async function handleDeleteFolder(id: string) {
     if (!confirm("Delete this folder? Its logins will move to “No folder”.")) return;
     unlockedVault.deleteFolder(id);
     if (selectedFolderId === id) setSelectedFolderId("all");
-    await persistAndNotify();
+    await persistAndSync();
   }
 
   return (
@@ -83,6 +104,9 @@ export default function VaultHomeShell({ onLocked }: Props) {
         <div className="topbar">
           <SearchBar value={query} onChange={setQuery} />
           <button onClick={() => setEditorState("new")}>Add login</button>
+          <span className="hint-text" style={{ marginLeft: "auto" }}>
+            {SYNC_STATUS_LABEL[syncState.status]}
+          </span>
         </div>
 
         {visibleLogins.length === 0 ? (
@@ -116,13 +140,29 @@ export default function VaultHomeShell({ onLocked }: Props) {
           settings={unlockedVault.settings}
           onUpdateSettings={async (patch) => {
             unlockedVault.updateSettings(patch);
-            await persistAndNotify();
+            await persistAndSync();
           }}
           onChangePassword={async (newPassword) => {
             changeMasterPassword(unlockedVault, newPassword);
-            await persistAndNotify();
+            await persistAndSync();
           }}
           onClose={() => setShowSettings(false)}
+          driveEmail={profile?.email ?? null}
+          lastSyncedAt={syncState.lastSyncedAt}
+          onDisconnectDrive={onDisconnectDrive}
+        />
+      )}
+
+      {syncState.status === "conflict" && accessToken && (
+        <ConflictResolutionScreen
+          onKeepMine={async () => {
+            const raw = await loadContainer(vaultId);
+            if (raw) await resolveConflictKeepMine(accessToken, vaultId, raw);
+          }}
+          onUseTheirs={async () => {
+            await resolveConflictUseTheirs(accessToken, vaultId);
+            lockSession();
+          }}
         />
       )}
     </div>
