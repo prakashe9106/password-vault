@@ -9,3 +9,9 @@ build/
 .DS_Store
 coverage/
 *.tsbuildinfo
+
+# Expo / React Native (apps/mobile)
+.expo/
+.expo-shared/
+*.jks
+*.keystore

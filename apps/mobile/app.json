@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Privacy-First Password Vault",
+    "slug": "privacy-first-password-vault",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "package": "com.privacyfirstvault.mobile",
+      "permissions": ["USE_BIOMETRIC", "USE_FINGERPRINT"]
+    },
+    "plugins": ["expo-secure-store"]
+  }
+}
