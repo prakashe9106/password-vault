@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Modal from "../components/Modal";
 
 interface Props {
   onKeepMine: () => Promise<void>;
@@ -26,23 +27,25 @@ export default function ConflictResolutionScreen({ onKeepMine, onUseTheirs }: Pr
   }
 
   return (
-    <div className="modal-backdrop">
-      <div className="card">
-        <h1>This vault changed on another device</h1>
-        <p className="hint-text">
-          Your vault was updated somewhere else since this device last synced. Choose which
-          version to keep — this can't automatically merge changes from both.
+    <Modal titleId="conflict-title">
+      <h1 id="conflict-title">This vault changed on another device</h1>
+      <p className="hint-text">
+        Your vault was updated somewhere else since this device last synced. Choose which
+        version to keep — this can't automatically merge changes from both.
+      </p>
+      {error && (
+        <p className="error-text" role="alert">
+          {error}
         </p>
-        {error && <p className="error-text">{error}</p>}
-        <div className="row">
-          <button disabled={busy !== null} onClick={() => handle("mine", onKeepMine)}>
-            {busy === "mine" ? "Keeping mine…" : "Keep my changes"}
-          </button>
-          <button className="secondary" disabled={busy !== null} onClick={() => handle("theirs", onUseTheirs)}>
-            {busy === "theirs" ? "Loading…" : "Use the other device's version"}
-          </button>
-        </div>
+      )}
+      <div className="row">
+        <button disabled={busy !== null} onClick={() => handle("mine", onKeepMine)}>
+          {busy === "mine" ? "Keeping mine…" : "Keep my changes"}
+        </button>
+        <button className="secondary" disabled={busy !== null} onClick={() => handle("theirs", onUseTheirs)}>
+          {busy === "theirs" ? "Loading…" : "Use the other device's version"}
+        </button>
       </div>
-    </div>
+    </Modal>
   );
 }

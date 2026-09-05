@@ -1,5 +1,7 @@
 import { useState } from "react";
 import type { VaultSettings } from "@vault/core";
+import Modal from "../components/Modal";
+import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 
 interface Props {
   settings: VaultSettings;
@@ -27,46 +29,60 @@ export default function SettingsScreen({ settings, onUpdateSettings, onChangePas
   }
 
   return (
-    <div className="modal-backdrop">
-      <div className="screen modal">
-        <h2>Settings</h2>
+    <Modal titleId="ext-settings-title" onClose={onClose}>
+      <h2 id="ext-settings-title">Settings</h2>
 
-        <label className="field-label">Auto-lock after inactivity</label>
-        <select
-          value={settings.auto_lock_minutes}
-          onChange={(e) => onUpdateSettings({ auto_lock_minutes: Number(e.target.value) })}
-        >
-          {AUTO_LOCK_OPTIONS.map((minutes) => (
-            <option key={minutes} value={minutes}>
-              {minutes === 0 ? "Never" : `${minutes} minute${minutes === 1 ? "" : "s"}`}
-            </option>
-          ))}
-        </select>
+      <label className="field-label" htmlFor="ext-auto-lock">
+        Auto-lock after inactivity
+      </label>
+      <select
+        id="ext-auto-lock"
+        value={settings.auto_lock_minutes}
+        onChange={(e) => onUpdateSettings({ auto_lock_minutes: Number(e.target.value) })}
+      >
+        {AUTO_LOCK_OPTIONS.map((minutes) => (
+          <option key={minutes} value={minutes}>
+            {minutes === 0 ? "Never" : `${minutes} minute${minutes === 1 ? "" : "s"}`}
+          </option>
+        ))}
+      </select>
 
-        <h3>Change master password</h3>
-        <form onSubmit={handleChangePassword}>
-          <input
-            type="password"
-            placeholder="New master password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Confirm new password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
-          {status && <p className="hint">{status}</p>}
-          <button type="submit">Update password</button>
-        </form>
+      <h3>Change master password</h3>
+      <form onSubmit={handleChangePassword}>
+        <label className="field-label" htmlFor="ext-new-password">
+          New master password
+        </label>
+        <input
+          id="ext-new-password"
+          type="password"
+          autoComplete="new-password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+        />
+        <PasswordStrengthMeter password={newPassword} />
+        <label className="field-label" htmlFor="ext-confirm-password">
+          Confirm new password
+        </label>
+        <input
+          id="ext-confirm-password"
+          type="password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
+        {status && (
+          <p className="hint" role="status" aria-live="polite">
+            {status}
+          </p>
+        )}
+        <button type="submit">Update password</button>
+      </form>
 
-        <div className="row">
-          <button className="secondary" onClick={onClose}>
-            Close
-          </button>
-        </div>
+      <div className="row">
+        <button className="secondary" onClick={onClose}>
+          Close
+        </button>
       </div>
-    </div>
+    </Modal>
   );
 }

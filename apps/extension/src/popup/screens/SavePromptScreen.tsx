@@ -28,10 +28,14 @@ export default function SavePromptScreen({ pending, onResolved }: Props) {
     <div className="screen">
       <h2>Save this login?</h2>
       <p className="hint">You just signed in to {pending.origin}.</p>
-      <div className="field-label">Site</div>
-      <input readOnly value={pending.origin} />
-      <div className="field-label">Username</div>
-      <input readOnly value={pending.username} />
+      <label className="field-label" htmlFor="save-prompt-site">
+        Site
+      </label>
+      <input id="save-prompt-site" readOnly value={pending.origin} />
+      <label className="field-label" htmlFor="save-prompt-username">
+        Username
+      </label>
+      <input id="save-prompt-username" readOnly value={pending.username} />
       <div className="row">
         <button disabled={busy} onClick={handleSave}>
           Save

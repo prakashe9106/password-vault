@@ -56,7 +56,11 @@ export default function UnlockVaultScreen({ vaultId, vaultName, onUnlocked }: Pr
               autoFocus
             />
           </div>
-          {error && <p className="error-text">{error}</p>}
+          {error && (
+            <p className="error-text" role="alert">
+              {error}
+            </p>
+          )}
           <button type="submit" disabled={busy || !secret}>
             {busy ? "Unlocking…" : "Unlock"}
           </button>

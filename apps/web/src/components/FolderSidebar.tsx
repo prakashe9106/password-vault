@@ -51,7 +51,7 @@ export default function FolderSidebar({
           </button>
           <button
             className="secondary"
-            title="Delete folder"
+            aria-label={`Delete folder "${folder.name}"`}
             style={{ padding: "0.2rem 0.5rem" }}
             onClick={() => onDeleteFolder(folder.id)}
           >
@@ -70,12 +70,13 @@ export default function FolderSidebar({
         }}
       >
         <input
+          aria-label="New folder name"
           placeholder="New folder"
           value={newFolderName}
           onChange={(e) => setNewFolderName(e.target.value)}
           style={{ fontSize: "0.85rem" }}
         />
-        <button type="submit" style={{ padding: "0.4rem 0.6rem" }}>
+        <button type="submit" aria-label="Add folder" style={{ padding: "0.4rem 0.6rem" }}>
           +
         </button>
       </form>

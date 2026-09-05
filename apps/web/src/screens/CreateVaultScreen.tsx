@@ -4,6 +4,7 @@ import { saveContainer } from "../storage/indexedDbAdapter";
 import { setUnlocked } from "../state/sessionStore";
 import { createInitialDriveFile } from "../state/syncStore";
 import { DEFAULT_VAULT_NAME } from "../constants";
+import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 
 interface Props {
   accessToken: string;
@@ -66,6 +67,7 @@ export default function CreateVaultScreen({ accessToken, onCreated }: Props) {
               onChange={(e) => setPassword(e.target.value)}
               disabled={busy}
             />
+            <PasswordStrengthMeter password={password} />
           </div>
           <div className="field">
             <label htmlFor="confirm">Confirm master password</label>
@@ -78,7 +80,11 @@ export default function CreateVaultScreen({ accessToken, onCreated }: Props) {
               disabled={busy}
             />
           </div>
-          {error && <p className="error-text">{error}</p>}
+          {error && (
+            <p className="error-text" role="alert">
+              {error}
+            </p>
+          )}
           <button type="submit" disabled={busy}>
             {busy ? "Creating vault…" : "Create vault"}
           </button>

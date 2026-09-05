@@ -1,5 +1,7 @@
 import { useState } from "react";
 import type { VaultSettings } from "@vault/core";
+import Modal from "../components/Modal";
+import PasswordStrengthMeter from "../components/PasswordStrengthMeter";
 
 interface Props {
   settings: VaultSettings;
@@ -44,9 +46,8 @@ export default function SettingsScreen({
   }
 
   return (
-    <div className="modal-backdrop">
-      <div className="card" style={{ maxWidth: 480 }}>
-        <h1>Settings</h1>
+    <Modal titleId="settings-title" onClose={onClose} maxWidth={480}>
+      <h1 id="settings-title">Settings</h1>
 
         <div className="field">
           <label htmlFor="auto-lock">Auto-lock after inactivity</label>
@@ -63,7 +64,7 @@ export default function SettingsScreen({
           </select>
         </div>
 
-        <h1 style={{ fontSize: "1rem", marginTop: "1.5rem" }}>Change master password</h1>
+        <h2 style={{ fontSize: "1rem", marginTop: "1.5rem" }}>Change master password</h2>
         <form onSubmit={handleChangePassword}>
           <div className="field">
             <label htmlFor="new-password">New master password</label>
@@ -73,6 +74,7 @@ export default function SettingsScreen({
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
+            <PasswordStrengthMeter password={newPassword} />
           </div>
           <div className="field">
             <label htmlFor="confirm-password">Confirm new password</label>
@@ -83,11 +85,15 @@ export default function SettingsScreen({
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </div>
-          {status && <p className="hint-text">{status}</p>}
+          {status && (
+            <p className="hint-text" role="status" aria-live="polite">
+              {status}
+            </p>
+          )}
           <button type="submit">Update password</button>
         </form>
 
-        <h1 style={{ fontSize: "1rem", marginTop: "1.5rem" }}>Storage</h1>
+        <h2 style={{ fontSize: "1rem", marginTop: "1.5rem" }}>Storage</h2>
         <p className="hint-text">
           {driveEmail ? `Connected as ${driveEmail}` : "Not connected"}
           {lastSyncedAt && <> · last synced {new Date(lastSyncedAt).toLocaleString()}</>}
@@ -101,7 +107,6 @@ export default function SettingsScreen({
             Close
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

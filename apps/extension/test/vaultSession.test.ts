@@ -112,3 +112,34 @@ describe("lock / unlock", () => {
     expect(mod.getLiveVault()).not.toBeNull();
   });
 });
+
+describe("no plaintext leakage to chrome.storage.local", () => {
+  // The PRD's Definition of Done requires "No secret leakage in logs/network telemetry" — this
+  // makes that an explicit, checkable regression test for the extension's on-disk cache.
+  it("never persists the plaintext title, username, or password of a saved login", async () => {
+    const PLAINTEXT_TITLE = "My Secret Bank";
+    const PLAINTEXT_USERNAME = "definitely-not-encrypted-user";
+    const PLAINTEXT_PASSWORD = "hunter2-super-secret-password";
+
+    const mod = await freshModule();
+    await mod.createNewVault("correct horse battery staple", "My Vault");
+    mod.getLiveVault()!.addLogin({
+      title: PLAINTEXT_TITLE,
+      url: "https://example.com",
+      username: PLAINTEXT_USERNAME,
+      password: PLAINTEXT_PASSWORD,
+      notes: "",
+      folder_id: null,
+    });
+    await mod.persistLiveVault();
+
+    const stored = (await chrome.storage.local.get("vaultContainer")) as {
+      vaultContainer?: { raw: string };
+    };
+    const raw = stored.vaultContainer?.raw;
+    expect(raw).toBeDefined();
+    expect(raw).not.toContain(PLAINTEXT_TITLE);
+    expect(raw).not.toContain(PLAINTEXT_USERNAME);
+    expect(raw).not.toContain(PLAINTEXT_PASSWORD);
+  });
+});

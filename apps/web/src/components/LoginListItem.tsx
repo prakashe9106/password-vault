@@ -37,7 +37,11 @@ export default function LoginListItem({ login, onEdit, onDelete }: Props) {
           {login.username} · {login.url}
         </div>
         {revealed && <div className="login-item-meta">{login.password}</div>}
-        {status && <div className="hint-text">{status}</div>}
+        {status && (
+          <div className="hint-text" role="status" aria-live="polite">
+            {status}
+          </div>
+        )}
       </div>
       <div className="row">
         <button className="secondary" onClick={() => setRevealed((r) => !r)}>

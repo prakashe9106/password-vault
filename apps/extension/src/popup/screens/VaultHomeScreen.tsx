@@ -81,11 +81,22 @@ export default function VaultHomeScreen({ onLocked }: Props) {
   return (
     <div className="screen">
       <div className="topbar">
-        <input placeholder="Search…" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <button onClick={() => setEditorState("new")}>+</button>
+        <input
+          aria-label="Search logins"
+          placeholder="Search…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <button aria-label="Add login" onClick={() => setEditorState("new")}>
+          +
+        </button>
       </div>
 
-      {fillStatus && <p className="hint">{fillStatus}</p>}
+      {fillStatus && (
+        <p className="hint" role="status" aria-live="polite">
+          {fillStatus}
+        </p>
+      )}
 
       {filtered.length === 0 ? (
         <p className="hint">No logins yet.</p>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Folder, Login } from "@vault/core";
 import PasswordGeneratorPanel from "../components/PasswordGeneratorPanel";
+import Modal from "../components/Modal";
 
 export interface LoginFormValues {
   title: string;
@@ -35,9 +36,8 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
   }
 
   return (
-    <div className="modal-backdrop">
-      <div className="card" style={{ maxWidth: 480 }}>
-        <h1>{existing ? "Edit login" : "Add login"}</h1>
+    <Modal titleId="login-editor-title" onClose={onCancel} maxWidth={480}>
+      <h1 id="login-editor-title">{existing ? "Edit login" : "Add login"}</h1>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -106,7 +106,6 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
