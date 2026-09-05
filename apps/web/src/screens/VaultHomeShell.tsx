@@ -3,19 +3,24 @@ import type { Login } from "@vault/core";
 import { changeMasterPassword } from "@vault/core";
 import { lockSession, persistAndNotify, useSession } from "../state/sessionStore";
 import { useAutoLock } from "../state/autoLock";
-import { useAuthState } from "../lib/googleAuth";
+import { useAuthState as useGoogleAuthState } from "../lib/googleAuth";
+import { useAuthState as useOneDriveAuthState } from "../lib/oneDriveAuth";
+import { PROVIDER_LABELS, type StorageProvider } from "../lib/storageProvider";
 import { resolveConflictKeepMine, resolveConflictUseTheirs, uploadNow, useSyncState } from "../state/syncStore";
 import { loadContainer } from "../storage/indexedDbAdapter";
+import { exportLoginsToCsv, type ImportedLoginRow } from "../lib/csvVault";
 import FolderSidebar from "../components/FolderSidebar";
 import SearchBar from "../components/SearchBar";
 import LoginListItem from "../components/LoginListItem";
 import LoginEditorScreen, { type LoginFormValues } from "./LoginEditorScreen";
 import SettingsScreen from "./SettingsScreen";
+import ImportVaultScreen from "./ImportVaultScreen";
 import ConflictResolutionScreen from "./ConflictResolutionScreen";
 
 interface Props {
+  connectedProvider: StorageProvider;
   onLocked: () => void;
-  onDisconnectDrive: () => void;
+  onDisconnectStorage: () => void;
 }
 
 const SYNC_STATUS_LABEL: Record<string, string> = {
@@ -27,14 +32,23 @@ const SYNC_STATUS_LABEL: Record<string, string> = {
   error: "Sync error",
 };
 
-export default function VaultHomeShell({ onLocked, onDisconnectDrive }: Props) {
+/** Both hooks are cheap and always called, so which provider is "active" can vary per render
+ * without breaking the rules of hooks. */
+function useConnectedAuth(provider: StorageProvider) {
+  const google = useGoogleAuthState();
+  const oneDrive = useOneDriveAuthState();
+  return provider === "google-drive" ? google : oneDrive;
+}
+
+export default function VaultHomeShell({ connectedProvider, onLocked, onDisconnectStorage }: Props) {
   const session = useSession();
-  const { accessToken, profile } = useAuthState();
+  const { accessToken, profile } = useConnectedAuth(connectedProvider);
   const syncState = useSyncState();
   const [selectedFolderId, setSelectedFolderId] = useState<string | null | "all">("all");
   const [query, setQuery] = useState("");
   const [editorState, setEditorState] = useState<"closed" | "new" | Login>("closed");
   const [showSettings, setShowSettings] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   const autoLockMinutes = session.status === "unlocked" ? session.unlockedVault.settings.auto_lock_minutes : 0;
   useAutoLock(autoLockMinutes);
@@ -58,7 +72,7 @@ export default function VaultHomeShell({ onLocked, onDisconnectDrive }: Props) {
 
   async function persistAndSync(): Promise<void> {
     const raw = await persistAndNotify();
-    await uploadNow(accessToken, vaultId, raw);
+    await uploadNow(connectedProvider, accessToken, vaultId, raw);
   }
 
   async function handleSaveLogin(values: LoginFormValues) {
@@ -86,6 +100,42 @@ export default function VaultHomeShell({ onLocked, onDisconnectDrive }: Props) {
     if (!confirm("Delete this folder? Its logins will move to “No folder”.")) return;
     unlockedVault.deleteFolder(id);
     if (selectedFolderId === id) setSelectedFolderId("all");
+    await persistAndSync();
+  }
+
+  function handleExportCsv() {
+    const proceed = confirm(
+      "This creates an unencrypted file with all your passwords. Anyone with access to this file can read them. Continue?",
+    );
+    if (!proceed) return;
+    const csv = exportLoginsToCsv(unlockedVault.logins, unlockedVault.folders);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `vault-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setShowSettings(false);
+  }
+
+  async function handleImportLogins(rows: ImportedLoginRow[]): Promise<void> {
+    const folderIdByName = new Map(unlockedVault.folders.map((f) => [f.name, f.id]));
+    for (const row of rows) {
+      let folderId: string | null = null;
+      if (row.folderName) {
+        folderId = folderIdByName.get(row.folderName) ?? null;
+        if (!folderId) {
+          const created = unlockedVault.addFolder(row.folderName);
+          folderId = created.id;
+          folderIdByName.set(row.folderName, folderId);
+        }
+      }
+      unlockedVault.addLogin({ ...row.values, folder_id: folderId });
+    }
+    setShowImport(false);
     await persistAndSync();
   }
 
@@ -147,20 +197,28 @@ export default function VaultHomeShell({ onLocked, onDisconnectDrive }: Props) {
             await persistAndSync();
           }}
           onClose={() => setShowSettings(false)}
-          driveEmail={profile?.email ?? null}
+          connectedEmail={profile?.email ?? null}
+          providerLabel={PROVIDER_LABELS[connectedProvider]}
           lastSyncedAt={syncState.lastSyncedAt}
-          onDisconnectDrive={onDisconnectDrive}
+          onDisconnectStorage={onDisconnectStorage}
+          onExportCsv={handleExportCsv}
+          onOpenImport={() => {
+            setShowSettings(false);
+            setShowImport(true);
+          }}
         />
       )}
+
+      {showImport && <ImportVaultScreen onImport={handleImportLogins} onCancel={() => setShowImport(false)} />}
 
       {syncState.status === "conflict" && accessToken && (
         <ConflictResolutionScreen
           onKeepMine={async () => {
             const raw = await loadContainer(vaultId);
-            if (raw) await resolveConflictKeepMine(accessToken, vaultId, raw);
+            if (raw) await resolveConflictKeepMine(connectedProvider, accessToken, vaultId, raw);
           }}
           onUseTheirs={async () => {
-            await resolveConflictUseTheirs(accessToken, vaultId);
+            await resolveConflictUseTheirs(connectedProvider, accessToken, vaultId);
             lockSession();
           }}
         />

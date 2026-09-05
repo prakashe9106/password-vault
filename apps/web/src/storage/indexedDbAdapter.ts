@@ -2,8 +2,8 @@ import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 
 /**
  * The only module in this app that touches browser storage. Persists the encrypted container
- * blob exactly as vault-core produces it (serializeContainer output) — this is a stand-in for
- * the future Google Drive upload; nothing here ever sees decrypted vault data.
+ * blob exactly as vault-core produces it (serializeContainer output) as the local cache backing
+ * cloud sync (Google Drive or OneDrive); nothing here ever sees decrypted vault data.
  */
 
 export interface VaultIndexEntry {
@@ -12,9 +12,10 @@ export interface VaultIndexEntry {
   updated_at: string;
 }
 
-/** Local-only metadata linking a vault to its Drive file. Never holds tokens or secrets. */
-export interface DriveLink {
+/** Local-only metadata linking a vault to its cloud storage file. Never holds tokens or secrets. */
+export interface StorageLink {
   vault_id: string;
+  provider: "google-drive" | "onedrive";
   folder_id: string;
   file_id: string;
   last_known_head_revision_id: string;
@@ -33,7 +34,7 @@ interface VaultDB extends DBSchema {
   };
   driveLinks: {
     key: string;
-    value: DriveLink;
+    value: StorageLink;
   };
 }
 
@@ -92,17 +93,17 @@ export async function deleteVault(vaultId: string): Promise<void> {
   ]);
 }
 
-export async function getDriveLink(vaultId: string): Promise<DriveLink | undefined> {
+export async function getStorageLink(vaultId: string): Promise<StorageLink | undefined> {
   const db = await getDb();
   return db.get("driveLinks", vaultId);
 }
 
-export async function saveDriveLink(link: DriveLink): Promise<void> {
+export async function saveStorageLink(link: StorageLink): Promise<void> {
   const db = await getDb();
   await db.put("driveLinks", link);
 }
 
-export async function deleteDriveLink(vaultId: string): Promise<void> {
+export async function deleteStorageLink(vaultId: string): Promise<void> {
   const db = await getDb();
   await db.delete("driveLinks", vaultId);
 }

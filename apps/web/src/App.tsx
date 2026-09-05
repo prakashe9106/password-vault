@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { isDriveConfigured, signOut } from "./lib/googleAuth";
+import { isGoogleDriveConfigured, signOut as googleSignOut } from "./lib/googleAuth";
+import { isOneDriveConfigured, signOut as oneDriveSignOut } from "./lib/oneDriveAuth";
+import { PROVIDER_LABELS, type StorageProvider } from "./lib/storageProvider";
 import { lockSession } from "./state/sessionStore";
-import { migrateLocalVaultToDrive, resolveDriveState, retryPendingUploads } from "./state/syncStore";
-import DriveNotConfiguredScreen from "./screens/DriveNotConfiguredScreen";
-import ConnectDriveScreen from "./screens/ConnectDriveScreen";
+import { migrateLocalVaultToRemote, resolveRemoteState, retryPendingUploads } from "./state/syncStore";
+import StorageNotConfiguredScreen from "./screens/StorageNotConfiguredScreen";
+import ConnectStorageScreen from "./screens/ConnectStorageScreen";
 import MigrateVaultChoiceScreen from "./screens/MigrateVaultChoiceScreen";
 import CreateVaultScreen from "./screens/CreateVaultScreen";
 import UnlockVaultScreen from "./screens/UnlockVaultScreen";
@@ -12,7 +14,7 @@ import VaultHomeShell from "./screens/VaultHomeShell";
 
 type Phase =
   | "not-configured"
-  | "connect-drive"
+  | "connect-storage"
   | "resolving"
   | "migrate-choice"
   | "create"
@@ -25,26 +27,32 @@ interface VaultMeta {
   vaultName: string;
 }
 
+function isAnyStorageConfigured(): boolean {
+  return isGoogleDriveConfigured() || isOneDriveConfigured();
+}
+
 export default function App() {
-  const [phase, setPhase] = useState<Phase>(isDriveConfigured() ? "connect-drive" : "not-configured");
+  const [phase, setPhase] = useState<Phase>(isAnyStorageConfigured() ? "connect-storage" : "not-configured");
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [connectedProvider, setConnectedProvider] = useState<StorageProvider | null>(null);
   const [vaultMeta, setVaultMeta] = useState<VaultMeta | null>(null);
   const [pendingRecoveryCode, setPendingRecoveryCode] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!accessToken) return;
-    const retry = () => retryPendingUploads(accessToken);
+    if (!accessToken || !connectedProvider) return;
+    const retry = () => retryPendingUploads(connectedProvider, accessToken);
     window.addEventListener("online", retry);
     return () => window.removeEventListener("online", retry);
-  }, [accessToken]);
+  }, [accessToken, connectedProvider]);
 
-  async function handleConnected(token: string) {
+  async function handleConnected(token: string, provider: StorageProvider) {
     setAccessToken(token);
+    setConnectedProvider(provider);
     setPhase("resolving");
     setResolveError(null);
     try {
-      const result = await resolveDriveState(token);
+      const result = await resolveRemoteState(provider, token);
       if (result.kind === "remote-found") {
         setVaultMeta({ vaultId: result.vaultId, vaultName: result.vaultName });
         setPhase("unlock");
@@ -55,38 +63,41 @@ export default function App() {
         setPhase("create");
       }
     } catch (err) {
-      setResolveError(err instanceof Error ? err.message : "Failed to check Google Drive.");
-      setPhase("connect-drive");
+      setResolveError(err instanceof Error ? err.message : `Failed to check ${PROVIDER_LABELS[provider]}.`);
+      setPhase("connect-storage");
     }
   }
 
   if (phase === "not-configured") {
-    return <DriveNotConfiguredScreen />;
+    return <StorageNotConfiguredScreen />;
   }
 
-  if (phase === "connect-drive") {
+  if (phase === "connect-storage") {
     return (
       <>
         {resolveError && (
           <div className="centered-screen" style={{ position: "absolute", top: 0, width: "100%" }}>
-            <p className="error-text">{resolveError}</p>
+            <p className="error-text" role="alert">
+              {resolveError}
+            </p>
           </div>
         )}
-        <ConnectDriveScreen onConnected={handleConnected} />
+        <ConnectStorageScreen onConnected={handleConnected} />
       </>
     );
   }
 
   if (phase === "resolving") {
-    return <div className="centered-screen">Checking Google Drive…</div>;
+    return <div className="centered-screen">Checking {connectedProvider ? PROVIDER_LABELS[connectedProvider] : "cloud storage"}…</div>;
   }
 
-  if (phase === "migrate-choice" && vaultMeta && accessToken) {
+  if (phase === "migrate-choice" && vaultMeta && accessToken && connectedProvider) {
     return (
       <MigrateVaultChoiceScreen
         vaultName={vaultMeta.vaultName}
+        providerLabel={PROVIDER_LABELS[connectedProvider]}
         onUploadExisting={async () => {
-          await migrateLocalVaultToDrive(accessToken, vaultMeta.vaultId);
+          await migrateLocalVaultToRemote(connectedProvider, accessToken, vaultMeta.vaultId);
           setPhase("unlock");
         }}
         onStartFresh={() => {
@@ -97,10 +108,11 @@ export default function App() {
     );
   }
 
-  if (phase === "create" && accessToken) {
+  if (phase === "create" && accessToken && connectedProvider) {
     return (
       <CreateVaultScreen
         accessToken={accessToken}
+        provider={connectedProvider}
         onCreated={(vaultId, vaultName, recoveryCode) => {
           setVaultMeta({ vaultId, vaultName });
           setPendingRecoveryCode(recoveryCode);
@@ -120,16 +132,19 @@ export default function App() {
     );
   }
 
-  if (phase === "app") {
+  if (phase === "app" && connectedProvider) {
     return (
       <VaultHomeShell
+        connectedProvider={connectedProvider}
         onLocked={() => setPhase("unlock")}
-        onDisconnectDrive={() => {
+        onDisconnectStorage={() => {
           lockSession();
-          signOut();
+          if (connectedProvider === "google-drive") googleSignOut();
+          else void oneDriveSignOut();
           setAccessToken(null);
+          setConnectedProvider(null);
           setVaultMeta(null);
-          setPhase("connect-drive");
+          setPhase("connect-storage");
         }}
       />
     );

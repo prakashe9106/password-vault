@@ -9,20 +9,24 @@ vi.mock("../src/lib/driveClient", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/lib/driveClient")>();
   return {
     ...actual,
-    findVaultFolder: vi.fn(),
-    createVaultFolder: vi.fn(),
-    createVaultFile: vi.fn(),
-    updateFileContent: vi.fn(),
-    getFileMeta: vi.fn(),
+    googleDriveProvider: {
+      findVaultFolder: vi.fn(),
+      createVaultFolder: vi.fn(),
+      findVaultFile: vi.fn(),
+      createVaultFile: vi.fn(),
+      getFileContent: vi.fn(),
+      getFileMeta: vi.fn(),
+      updateFileContent: vi.fn(),
+    },
   };
 });
 
 const driveClientModule = await import("../src/lib/driveClient");
-const mockFindVaultFolder = vi.mocked(driveClientModule.findVaultFolder);
-const mockCreateVaultFolder = vi.mocked(driveClientModule.createVaultFolder);
-const mockCreateVaultFile = vi.mocked(driveClientModule.createVaultFile);
+const mockFindVaultFolder = vi.mocked(driveClientModule.googleDriveProvider.findVaultFolder);
+const mockCreateVaultFolder = vi.mocked(driveClientModule.googleDriveProvider.createVaultFolder);
+const mockCreateVaultFile = vi.mocked(driveClientModule.googleDriveProvider.createVaultFile);
 
-const { createInitialDriveFile } = await import("../src/state/syncStore");
+const { createInitialRemoteFile } = await import("../src/state/syncStore");
 
 const PLAINTEXT_TITLE = "My Secret Bank";
 const PLAINTEXT_USERNAME = "definitely-not-encrypted-user";
@@ -53,7 +57,7 @@ describe("no plaintext leakage to Drive", () => {
     mockCreateVaultFolder.mockResolvedValue("folder-1");
     mockCreateVaultFile.mockResolvedValue({ id: "file-1", headRevisionId: "r1", modifiedTime: "t" });
 
-    await createInitialDriveFile("token", container.vault_id, raw);
+    await createInitialRemoteFile("google-drive", "token", container.vault_id, raw);
 
     expect(mockCreateVaultFile).toHaveBeenCalledTimes(1);
     const [, , uploadedBody] = mockCreateVaultFile.mock.calls[0]!;

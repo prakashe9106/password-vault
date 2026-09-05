@@ -4,6 +4,8 @@
  * one folder/file this app creates for itself (drive.file scope).
  */
 
+import type { StorageProviderClient } from "./storageProvider";
+
 const DRIVE_API = "https://www.googleapis.com/drive/v3/files";
 const DRIVE_UPLOAD_API = "https://www.googleapis.com/upload/drive/v3/files";
 
@@ -115,3 +117,13 @@ export async function updateFileContent(accessToken: string, fileId: string, con
   );
   return (await res.json()) as DriveFileMeta;
 }
+
+export const googleDriveProvider: StorageProviderClient = {
+  findVaultFolder,
+  createVaultFolder,
+  findVaultFile,
+  createVaultFile,
+  getFileContent,
+  getFileMeta,
+  updateFileContent,
+};

@@ -8,9 +8,12 @@ interface Props {
   onUpdateSettings: (patch: Partial<VaultSettings>) => void;
   onChangePassword: (newPassword: string) => Promise<void>;
   onClose: () => void;
-  driveEmail: string | null;
+  connectedEmail: string | null;
+  providerLabel: string;
   lastSyncedAt: string | null;
-  onDisconnectDrive: () => void;
+  onDisconnectStorage: () => void;
+  onExportCsv: () => void;
+  onOpenImport: () => void;
 }
 
 const AUTO_LOCK_OPTIONS = [1, 5, 15, 30, 0];
@@ -20,9 +23,12 @@ export default function SettingsScreen({
   onUpdateSettings,
   onChangePassword,
   onClose,
-  driveEmail,
+  connectedEmail,
+  providerLabel,
   lastSyncedAt,
-  onDisconnectDrive,
+  onDisconnectStorage,
+  onExportCsv,
+  onOpenImport,
 }: Props) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -95,12 +101,23 @@ export default function SettingsScreen({
 
         <h2 style={{ fontSize: "1rem", marginTop: "1.5rem" }}>Storage</h2>
         <p className="hint-text">
-          {driveEmail ? `Connected as ${driveEmail}` : "Not connected"}
+          {connectedEmail ? `Connected to ${providerLabel} as ${connectedEmail}` : "Not connected"}
           {lastSyncedAt && <> · last synced {new Date(lastSyncedAt).toLocaleString()}</>}
         </p>
-        <button className="secondary" onClick={onDisconnectDrive}>
-          Disconnect Google Drive
+        <button className="secondary" onClick={onDisconnectStorage}>
+          Disconnect {providerLabel}
         </button>
+
+        <h2 style={{ fontSize: "1rem", marginTop: "1.5rem" }}>Import / Export</h2>
+        <p className="hint-text">Move logins in from another password manager, or back your own up.</p>
+        <div className="row">
+          <button className="secondary" onClick={onExportCsv}>
+            Export as CSV
+          </button>
+          <button className="secondary" onClick={onOpenImport}>
+            Import from CSV…
+          </button>
+        </div>
 
         <div className="row" style={{ marginTop: "1.5rem" }}>
           <button className="secondary" onClick={onClose}>

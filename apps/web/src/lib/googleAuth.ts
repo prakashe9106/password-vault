@@ -80,7 +80,7 @@ export function useAuthState(): AuthState {
   );
 }
 
-export function isDriveConfigured(): boolean {
+export function isGoogleDriveConfigured(): boolean {
   return Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 }
 
