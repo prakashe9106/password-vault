@@ -13,6 +13,7 @@ function login(overrides: Partial<Login> = {}): Login {
     folder_id: null,
     created_at: "t",
     updated_at: "t",
+    history: [],
     ...overrides,
   };
 }

@@ -14,6 +14,7 @@ import SearchBar from "../components/SearchBar";
 import LoginListItem from "../components/LoginListItem";
 import LoginEditorScreen, { type LoginFormValues } from "./LoginEditorScreen";
 import SettingsScreen from "./SettingsScreen";
+import SummaryScreen from "./SummaryScreen";
 import ImportVaultScreen from "./ImportVaultScreen";
 import ConflictResolutionScreen from "./ConflictResolutionScreen";
 
@@ -48,6 +49,7 @@ export default function VaultHomeShell({ connectedProvider, onLocked, onDisconne
   const [query, setQuery] = useState("");
   const [editorState, setEditorState] = useState<"closed" | "new" | Login>("closed");
   const [showSettings, setShowSettings] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
   const [showImport, setShowImport] = useState(false);
 
   const autoLockMinutes = session.status === "unlocked" ? session.unlockedVault.settings.auto_lock_minutes : 0;
@@ -148,6 +150,7 @@ export default function VaultHomeShell({ connectedProvider, onLocked, onDisconne
         onAddFolder={handleAddFolder}
         onDeleteFolder={handleDeleteFolder}
         onOpenSettings={() => setShowSettings(true)}
+        onOpenSummary={() => setShowSummary(true)}
         onLock={() => lockSession()}
       />
       <div className="main-panel">
@@ -207,6 +210,10 @@ export default function VaultHomeShell({ connectedProvider, onLocked, onDisconne
             setShowImport(true);
           }}
         />
+      )}
+
+      {showSummary && (
+        <SummaryScreen logins={unlockedVault.logins} folders={unlockedVault.folders} onClose={() => setShowSummary(false)} />
       )}
 
       {showImport && <ImportVaultScreen onImport={handleImportLogins} onCancel={() => setShowImport(false)} />}

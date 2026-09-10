@@ -4,6 +4,7 @@ import { sendToBackground } from "../../lib/messaging";
 import { matchLoginsForOrigin } from "../../lib/matching";
 import LoginEditorScreen, { type LoginFormValues } from "./LoginEditorScreen";
 import SettingsScreen from "./SettingsScreen";
+import SummaryScreen from "./SummaryScreen";
 
 interface Props {
   onLocked: () => void;
@@ -18,6 +19,7 @@ export default function VaultHomeScreen({ onLocked }: Props) {
   const [hasLoginForm, setHasLoginForm] = useState(false);
   const [editorState, setEditorState] = useState<"closed" | "new" | Login>("closed");
   const [showSettings, setShowSettings] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
   const [fillStatus, setFillStatus] = useState<string | null>(null);
 
   async function loadVault() {
@@ -122,6 +124,9 @@ export default function VaultHomeScreen({ onLocked }: Props) {
       )}
 
       <div className="row footer-row">
+        <button className="secondary" onClick={() => setShowSummary(true)}>
+          Summary
+        </button>
         <button className="secondary" onClick={() => setShowSettings(true)}>
           Settings
         </button>
@@ -144,6 +149,8 @@ export default function VaultHomeScreen({ onLocked }: Props) {
           onCancel={() => setEditorState("closed")}
         />
       )}
+
+      {showSummary && <SummaryScreen logins={logins} folders={folders} onClose={() => setShowSummary(false)} />}
 
       {showSettings && settings && (
         <SettingsScreen

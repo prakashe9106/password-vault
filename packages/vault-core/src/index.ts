@@ -30,5 +30,6 @@ export {
 } from "./recovery.js";
 export { generatePassword, generatePasswordAsync, defaultGeneratorRules } from "./generator.js";
 export { estimatePasswordStrength, type PasswordStrength } from "./passwordStrength.js";
+export { computeVaultInsights, STALE_DAYS, type VaultInsights, type FolderBreakdownEntry } from "./insights.js";
 export { createVault, unlockVault, unlockVaultWithRecovery, changeMasterPassword, UnlockedVault } from "./vault.js";
 export type { CreateVaultResult } from "./vault.js";

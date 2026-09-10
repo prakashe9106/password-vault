@@ -11,6 +11,7 @@ import { resolveConflictKeepMine, resolveConflictUseTheirs, uploadNow, useSyncSt
 import { loadContainer } from "../storage/vaultStorage";
 import LoginEditorScreen, { type LoginFormValues } from "./LoginEditorScreen";
 import SettingsScreen from "./SettingsScreen";
+import SummaryScreen from "./SummaryScreen";
 import ConflictResolutionScreen from "./ConflictResolutionScreen";
 
 interface Props {
@@ -36,6 +37,7 @@ export default function VaultHomeScreen({ accessToken, driveEmail, onLocked, onD
   const [query, setQuery] = useState("");
   const [editorState, setEditorState] = useState<"closed" | "new" | Login>("closed");
   const [showSettings, setShowSettings] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
 
   const autoLockMinutes = session.status === "unlocked" ? session.unlockedVault.settings.auto_lock_minutes : 0;
   useAutoLock(autoLockMinutes);
@@ -89,6 +91,9 @@ export default function VaultHomeScreen({ accessToken, driveEmail, onLocked, onD
           <Pressable style={styles.iconButton} onPress={() => setEditorState("new")} accessibilityLabel="Add login">
             <Text style={styles.iconButtonText}>+ Add</Text>
           </Pressable>
+          <Pressable style={styles.iconButton} onPress={() => setShowSummary(true)} accessibilityLabel="Summary">
+            <Text style={styles.iconButtonText}>Summary</Text>
+          </Pressable>
           <Pressable style={styles.iconButton} onPress={() => setShowSettings(true)} accessibilityLabel="Settings">
             <Text style={styles.iconButtonText}>Settings</Text>
           </Pressable>
@@ -137,6 +142,10 @@ export default function VaultHomeScreen({ accessToken, driveEmail, onLocked, onD
           onSave={handleSaveLogin}
           onCancel={() => setEditorState("closed")}
         />
+      )}
+
+      {showSummary && (
+        <SummaryScreen logins={unlockedVault.logins} folders={unlockedVault.folders} onClose={() => setShowSummary(false)} />
       )}
 
       {showSettings && (

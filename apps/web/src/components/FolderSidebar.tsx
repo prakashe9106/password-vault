@@ -8,6 +8,7 @@ interface Props {
   onAddFolder: (name: string) => void;
   onDeleteFolder: (folderId: string) => void;
   onOpenSettings: () => void;
+  onOpenSummary: () => void;
   onLock: () => void;
 }
 
@@ -18,6 +19,7 @@ export default function FolderSidebar({
   onAddFolder,
   onDeleteFolder,
   onOpenSettings,
+  onOpenSummary,
   onLock,
 }: Props) {
   const [newFolderName, setNewFolderName] = useState("");
@@ -82,6 +84,9 @@ export default function FolderSidebar({
       </form>
 
       <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+        <button className="secondary" onClick={onOpenSummary}>
+          Summary
+        </button>
         <button className="secondary" onClick={onOpenSettings}>
           Settings
         </button>
