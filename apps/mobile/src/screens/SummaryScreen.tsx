@@ -11,40 +11,47 @@ interface Props {
   onClose: () => void;
 }
 
+function StatTile({ label, value, color }: { label: string; value: number; color?: string }) {
+  return (
+    <View style={styles.tile}>
+      <Text style={styles.tileLabel}>{label}</Text>
+      <Text style={[styles.tileValue, color ? { color } : null]}>{value}</Text>
+    </View>
+  );
+}
+
 export default function SummaryScreen({ logins, folders, onClose }: Props) {
   const insights = computeVaultInsights(logins, folders);
+  const maxCategoryCount = Math.max(1, ...insights.folderBreakdown.map((f) => f.count));
 
   return (
     <Modal animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Heading>Vault summary</Heading>
-        <Text style={styles.hint}>{insights.totalLogins} saved logins</Text>
+
+        <View style={styles.tileGrid}>
+          <StatTile label="Total logins" value={insights.totalLogins} />
+          <StatTile label="Weak" value={insights.weakCount} color={colors.warning} />
+          <StatTile label="Reused" value={insights.reusedCount} color={colors.danger} />
+          <StatTile label={`Stale (${STALE_DAYS}+d)`} value={insights.staleCount} color={colors.warning} />
+        </View>
 
         <Heading>By category</Heading>
         {insights.folderBreakdown.length === 0 ? (
           <Text style={styles.hint}>No folders yet.</Text>
         ) : (
           insights.folderBreakdown.map((entry) => (
-            <View key={entry.folder_id ?? "none"} style={styles.row}>
-              <Text style={styles.rowLabel}>{entry.name}</Text>
+            <View key={entry.folder_id ?? "none"} style={styles.barRow}>
+              <Text style={styles.barName} numberOfLines={1}>
+                {entry.name}
+              </Text>
+              <View style={styles.barTrack}>
+                <View style={[styles.barFill, { width: `${(entry.count / maxCategoryCount) * 100}%` }]} />
+              </View>
               <Text style={styles.hint}>{entry.count}</Text>
             </View>
           ))
         )}
-
-        <Heading>Smart insights</Heading>
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>Weak passwords</Text>
-          <Text style={styles.hint}>{insights.weakCount}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>Reused passwords</Text>
-          <Text style={styles.hint}>{insights.reusedCount}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>Not changed in {STALE_DAYS}+ days</Text>
-          <Text style={styles.hint}>{insights.staleCount}</Text>
-        </View>
 
         <View style={{ height: 16 }} />
         <AppButton title="Close" variant="secondary" onPress={onClose} />
@@ -57,6 +64,12 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 20 },
   hint: { color: colors.muted, fontSize: 13 },
-  row: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6 },
-  rowLabel: { color: colors.text, fontSize: 14 },
+  tileGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
+  tile: { backgroundColor: colors.surface2, borderRadius: 8, padding: 10, flexBasis: "47%", flexGrow: 1 },
+  tileLabel: { color: colors.muted, fontSize: 12, marginBottom: 4 },
+  tileValue: { color: colors.text, fontSize: 22, fontWeight: "600" },
+  barRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 4 },
+  barName: { color: colors.muted, fontSize: 13, width: 80 },
+  barTrack: { flex: 1, height: 7, backgroundColor: colors.surface2, borderRadius: 4, overflow: "hidden" },
+  barFill: { height: "100%", backgroundColor: colors.accent, borderRadius: 4 },
 });
