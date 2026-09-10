@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Login } from "@vault/core";
+import type { Folder, Login } from "@vault/core";
 import { defaultGeneratorRules, generatePasswordAsync } from "@vault/core";
 import Modal from "../components/Modal";
 
@@ -14,11 +14,17 @@ export interface LoginFormValues {
 
 interface Props {
   existing?: Login;
+  folders: readonly Folder[];
   onSave: (values: LoginFormValues) => void;
   onCancel: () => void;
 }
 
-export default function LoginEditorScreen({ existing, onSave, onCancel }: Props) {
+function folderName(folders: readonly Folder[], folderId: string | null): string {
+  if (folderId === null) return "No folder";
+  return folders.find((f) => f.id === folderId)?.name ?? "Folder no longer exists";
+}
+
+export default function LoginEditorScreen({ existing, folders, onSave, onCancel }: Props) {
   const [values, setValues] = useState<LoginFormValues>({
     title: existing?.title ?? "",
     url: existing?.url ?? "",
@@ -27,6 +33,7 @@ export default function LoginEditorScreen({ existing, onSave, onCancel }: Props)
     notes: existing?.notes ?? "",
     folder_id: existing?.folder_id ?? null,
   });
+  const [showHistory, setShowHistory] = useState(false);
 
   function update<K extends keyof LoginFormValues>(key: K, value: LoginFormValues[K]) {
     setValues((v) => ({ ...v, [key]: value }));
@@ -80,6 +87,28 @@ export default function LoginEditorScreen({ existing, onSave, onCancel }: Props)
           Notes
         </label>
         <textarea id="ext-notes" rows={2} value={values.notes} onChange={(e) => update("notes", e.target.value)} />
+        {existing && existing.history.length > 0 && (
+          <div>
+            <button type="button" className="secondary" onClick={() => setShowHistory((s) => !s)}>
+              {showHistory ? "Hide history" : `Show history (${existing.history.length})`}
+            </button>
+            {showHistory && (
+              <div style={{ marginTop: "0.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                {existing.history.map((entry, i) => (
+                  <div key={i} style={{ background: "var(--surface-2)", padding: "0.5rem", borderRadius: 8, fontSize: 12 }}>
+                    <p style={{ margin: "0 0 0.3rem", opacity: 0.75 }}>Changed {new Date(entry.changed_at).toLocaleString()}</p>
+                    <p style={{ margin: "0.15rem 0" }}>Title: {entry.title}</p>
+                    <p style={{ margin: "0.15rem 0" }}>Website URL: {entry.url}</p>
+                    <p style={{ margin: "0.15rem 0" }}>Username: {entry.username}</p>
+                    <p style={{ margin: "0.15rem 0" }}>Password: {entry.password}</p>
+                    <p style={{ margin: "0.15rem 0" }}>Folder: {folderName(folders, entry.folder_id)}</p>
+                    <p style={{ margin: "0.15rem 0" }}>Notes: {entry.notes || "(none)"}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <div className="row">
           <button type="submit">Save</button>
           <button type="button" className="secondary" onClick={onCancel}>

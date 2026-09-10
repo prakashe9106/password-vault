@@ -1,5 +1,17 @@
 /** Vault data model and container types — see docs/spec/vault-protocol-v1.md */
 
+export interface LoginHistoryEntry {
+  changed_at: string;
+  title: string;
+  url: string;
+  username: string;
+  password: string;
+  notes: string;
+  folder_id: string | null;
+}
+
+export const MAX_LOGIN_HISTORY_ENTRIES = 20;
+
 export interface Login {
   id: string;
   title: string;
@@ -10,6 +22,8 @@ export interface Login {
   folder_id: string | null;
   created_at: string;
   updated_at: string;
+  /** Snapshots of prior field values, newest first, capped at MAX_LOGIN_HISTORY_ENTRIES. */
+  history: LoginHistoryEntry[];
 }
 
 export interface Folder {

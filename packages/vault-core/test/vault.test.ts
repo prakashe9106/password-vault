@@ -40,6 +40,45 @@ describe("Login CRUD", () => {
     expect(updated.created_at).toBe(login.created_at);
   });
 
+  it("starts with empty history", () => {
+    const login = vault.addLogin({ title: "A", url: "https://a.com", username: "u", password: "p", notes: "", folder_id: null });
+    expect(login.history).toEqual([]);
+  });
+
+  it("records a history entry with the old values when a tracked field changes", () => {
+    const login = vault.addLogin({ title: "A", url: "https://a.com", username: "u", password: "old-password", notes: "", folder_id: null });
+    const updated = vault.updateLogin(login.id, { password: "new-password" });
+    expect(updated.history).toHaveLength(1);
+    expect(updated.history[0]!.password).toBe("old-password");
+    expect(updated.history[0]!.title).toBe("A");
+  });
+
+  it("does not add a history entry when nothing actually changes", () => {
+    const login = vault.addLogin({ title: "A", url: "https://a.com", username: "u", password: "p", notes: "", folder_id: null });
+    const updated = vault.updateLogin(login.id, { password: "p" });
+    expect(updated.history).toEqual([]);
+  });
+
+  it("accumulates history entries newest-first across multiple edits", () => {
+    const login = vault.addLogin({ title: "A", url: "https://a.com", username: "u", password: "p1", notes: "", folder_id: null });
+    vault.updateLogin(login.id, { password: "p2" });
+    const updated = vault.updateLogin(login.id, { password: "p3" });
+    expect(updated.history).toHaveLength(2);
+    expect(updated.history[0]!.password).toBe("p2");
+    expect(updated.history[1]!.password).toBe("p1");
+  });
+
+  it("caps history at MAX_LOGIN_HISTORY_ENTRIES", () => {
+    const login = vault.addLogin({ title: "A", url: "https://a.com", username: "u", password: "p0", notes: "", folder_id: null });
+    const id = login.id;
+    let updated = login;
+    for (let i = 1; i <= 25; i++) {
+      updated = vault.updateLogin(id, { password: `p${i}` });
+    }
+    expect(updated.history).toHaveLength(20);
+    expect(updated.history[0]!.password).toBe("p24");
+  });
+
   it("deletes a login", () => {
     const login = vault.addLogin({ title: "A", url: "https://a.com", username: "u", password: "p", notes: "", folder_id: null });
     vault.deleteLogin(login.id);

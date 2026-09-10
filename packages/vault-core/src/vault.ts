@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
-import type { ContainerHeader, Folder, Login, VaultContainer, VaultData, VaultSettings } from "./schema.js";
-import { CURRENT_CRYPTO_VERSION, CURRENT_FORMAT_VERSION, emptyVaultData } from "./schema.js";
+import type { ContainerHeader, Folder, Login, LoginHistoryEntry, VaultContainer, VaultData, VaultSettings } from "./schema.js";
+import { CURRENT_CRYPTO_VERSION, CURRENT_FORMAT_VERSION, MAX_LOGIN_HISTORY_ENTRIES, emptyVaultData } from "./schema.js";
 import { generateVmk, ready, utf8ToBytes, wipe } from "./crypto.js";
 import { createEnvelope, generateRecoveryCode, openEnvelope, parseRecoveryCode } from "./recovery.js";
 import { decryptVaultData, encryptVaultData } from "./container.js";
@@ -123,23 +123,40 @@ export class UnlockedVault {
     return this.data.settings;
   }
 
-  addLogin(input: Omit<Login, "id" | "created_at" | "updated_at">): Login {
+  addLogin(input: Omit<Login, "id" | "created_at" | "updated_at" | "history">): Login {
     this.assertUnlocked();
     const now = new Date().toISOString();
-    const login: Login = { ...input, id: uuidv4(), created_at: now, updated_at: now };
+    const login: Login = { ...input, id: uuidv4(), created_at: now, updated_at: now, history: [] };
     this.data.logins.push(login);
     this.touch();
     return login;
   }
 
-  updateLogin(id: string, patch: Partial<Omit<Login, "id" | "created_at">>): Login {
+  updateLogin(id: string, patch: Partial<Omit<Login, "id" | "created_at" | "history">>): Login {
     this.assertUnlocked();
     const idx = this.data.logins.findIndex((l) => l.id === id);
     if (idx === -1) throw new VaultError(`Login not found: ${id}`);
-    const updated: Login = { ...this.data.logins[idx]!, ...patch, updated_at: new Date().toISOString() };
-    this.data.logins[idx] = updated;
+    const current = this.data.logins[idx]!;
+    const next: Login = { ...current, ...patch, updated_at: new Date().toISOString() };
+
+    const trackedFields = ["title", "url", "username", "password", "notes", "folder_id"] as const;
+    const changed = trackedFields.some((field) => next[field] !== current[field]);
+    if (changed) {
+      const snapshot: LoginHistoryEntry = {
+        changed_at: next.updated_at,
+        title: current.title,
+        url: current.url,
+        username: current.username,
+        password: current.password,
+        notes: current.notes,
+        folder_id: current.folder_id,
+      };
+      next.history = [snapshot, ...current.history].slice(0, MAX_LOGIN_HISTORY_ENTRIES);
+    }
+
+    this.data.logins[idx] = next;
     this.touch();
-    return updated;
+    return next;
   }
 
   deleteLogin(id: string): void {

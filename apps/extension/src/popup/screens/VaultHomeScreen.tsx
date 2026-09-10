@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Login, VaultSettings } from "@vault/core";
+import type { Folder, Login, VaultSettings } from "@vault/core";
 import { sendToBackground } from "../../lib/messaging";
 import { matchLoginsForOrigin } from "../../lib/matching";
 import LoginEditorScreen, { type LoginFormValues } from "./LoginEditorScreen";
@@ -11,6 +11,7 @@ interface Props {
 
 export default function VaultHomeScreen({ onLocked }: Props) {
   const [logins, setLogins] = useState<Login[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [settings, setSettings] = useState<VaultSettings | null>(null);
   const [query, setQuery] = useState("");
   const [activeOrigin, setActiveOrigin] = useState<string | null>(null);
@@ -20,7 +21,7 @@ export default function VaultHomeScreen({ onLocked }: Props) {
   const [fillStatus, setFillStatus] = useState<string | null>(null);
 
   async function loadVault() {
-    const result = await sendToBackground<{ ok: boolean; logins?: Login[]; settings?: VaultSettings }>({
+    const result = await sendToBackground<{ ok: boolean; logins?: Login[]; folders?: Folder[]; settings?: VaultSettings }>({
       type: "GET_VAULT_DATA",
     });
     if (!result.ok) {
@@ -28,6 +29,7 @@ export default function VaultHomeScreen({ onLocked }: Props) {
       return;
     }
     setLogins(result.logins ?? []);
+    setFolders(result.folders ?? []);
     setSettings(result.settings ?? null);
   }
 
@@ -137,6 +139,7 @@ export default function VaultHomeScreen({ onLocked }: Props) {
       {editorState !== "closed" && (
         <LoginEditorScreen
           existing={editorState === "new" ? undefined : editorState}
+          folders={folders}
           onSave={handleSaveLogin}
           onCancel={() => setEditorState("closed")}
         />

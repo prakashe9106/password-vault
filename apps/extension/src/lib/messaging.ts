@@ -9,8 +9,8 @@ export type PopupToBackgroundMessage =
   | { type: "UNLOCK_WITH_RECOVERY"; recoveryCode: string }
   | { type: "LOCK" }
   | { type: "GET_VAULT_DATA" }
-  | { type: "ADD_LOGIN"; input: Omit<Login, "id" | "created_at" | "updated_at"> }
-  | { type: "UPDATE_LOGIN"; id: string; patch: Partial<Omit<Login, "id" | "created_at">> }
+  | { type: "ADD_LOGIN"; input: Omit<Login, "id" | "created_at" | "updated_at" | "history"> }
+  | { type: "UPDATE_LOGIN"; id: string; patch: Partial<Omit<Login, "id" | "created_at" | "history">> }
   | { type: "DELETE_LOGIN"; id: string }
   | { type: "UPDATE_SETTINGS"; patch: Partial<VaultSettings> }
   | { type: "CHANGE_MASTER_PASSWORD"; newPassword: string }

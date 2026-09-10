@@ -20,6 +20,11 @@ interface Props {
   onCancel: () => void;
 }
 
+function folderName(folders: readonly Folder[], folderId: string | null): string {
+  if (folderId === null) return "No folder";
+  return folders.find((f) => f.id === folderId)?.name ?? "Folder no longer exists";
+}
+
 export default function LoginEditorScreen({ existing, folders, defaultFolderId, onSave, onCancel }: Props) {
   const [values, setValues] = useState<LoginFormValues>({
     title: existing?.title ?? "",
@@ -30,6 +35,7 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
     folder_id: existing?.folder_id ?? defaultFolderId ?? null,
   });
   const [showGenerator, setShowGenerator] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   function update<K extends keyof LoginFormValues>(key: K, value: LoginFormValues[K]) {
     setValues((v) => ({ ...v, [key]: value }));
@@ -99,6 +105,33 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
             <label htmlFor="notes">Notes</label>
             <textarea id="notes" rows={3} value={values.notes} onChange={(e) => update("notes", e.target.value)} />
           </div>
+          {existing && existing.history.length > 0 && (
+            <div className="field">
+              <button type="button" className="secondary" onClick={() => setShowHistory((s) => !s)}>
+                {showHistory ? "Hide history" : `Show history (${existing.history.length})`}
+              </button>
+              {showHistory && (
+                <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {existing.history.map((entry, i) => (
+                    <div
+                      key={i}
+                      style={{ background: "var(--surface-2)", padding: "0.75rem", borderRadius: 8, fontSize: 13 }}
+                    >
+                      <p className="hint-text" style={{ margin: "0 0 0.5rem" }}>
+                        Changed {new Date(entry.changed_at).toLocaleString()}
+                      </p>
+                      <p style={{ margin: "0.2rem 0" }}>Title: {entry.title}</p>
+                      <p style={{ margin: "0.2rem 0" }}>Website URL: {entry.url}</p>
+                      <p style={{ margin: "0.2rem 0" }}>Username: {entry.username}</p>
+                      <p style={{ margin: "0.2rem 0" }}>Password: {entry.password}</p>
+                      <p style={{ margin: "0.2rem 0" }}>Folder: {folderName(folders, entry.folder_id)}</p>
+                      <p style={{ margin: "0.2rem 0" }}>Notes: {entry.notes || "(none)"}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <div className="row">
             <button type="submit">Save</button>
             <button type="button" className="secondary" onClick={onCancel}>

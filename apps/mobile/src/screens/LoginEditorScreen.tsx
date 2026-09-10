@@ -24,6 +24,11 @@ interface Props {
   onCancel: () => void;
 }
 
+function folderName(folders: readonly Folder[], folderId: string | null): string {
+  if (folderId === null) return "No folder";
+  return folders.find((f) => f.id === folderId)?.name ?? "Folder no longer exists";
+}
+
 export default function LoginEditorScreen({ existing, folders, defaultFolderId, onSave, onCancel }: Props) {
   const [values, setValues] = useState<LoginFormValues>({
     title: existing?.title ?? "",
@@ -34,6 +39,7 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
     folder_id: existing?.folder_id ?? defaultFolderId ?? null,
   });
   const [generating, setGenerating] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   function update<K extends keyof LoginFormValues>(key: K, value: LoginFormValues[K]) {
     setValues((v) => ({ ...v, [key]: value }));
@@ -90,6 +96,30 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
           multiline
           numberOfLines={3}
         />
+        {existing && existing.history.length > 0 && (
+          <View style={{ marginBottom: 8 }}>
+            <AppButton
+              title={showHistory ? "Hide history" : `Show history (${existing.history.length})`}
+              variant="secondary"
+              onPress={() => setShowHistory((s) => !s)}
+            />
+            {showHistory && (
+              <View style={{ gap: 8, marginTop: 10 }}>
+                {existing.history.map((entry, i) => (
+                  <View key={i} style={styles.historyEntry}>
+                    <Text style={styles.historyMeta}>Changed {new Date(entry.changed_at).toLocaleString()}</Text>
+                    <Text style={styles.historyLine}>Title: {entry.title}</Text>
+                    <Text style={styles.historyLine}>Website URL: {entry.url}</Text>
+                    <Text style={styles.historyLine}>Username: {entry.username}</Text>
+                    <Text style={styles.historyLine}>Password: {entry.password}</Text>
+                    <Text style={styles.historyLine}>Folder: {folderName(folders, entry.folder_id)}</Text>
+                    <Text style={styles.historyLine}>Notes: {entry.notes || "(none)"}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
         <View style={{ gap: 10, marginTop: 8 }}>
           <AppButton title="Save" onPress={() => onSave(values)} />
           <AppButton title="Cancel" variant="secondary" onPress={onCancel} />
@@ -114,4 +144,7 @@ const styles = StyleSheet.create({
   },
   chipActive: { borderColor: colors.accent, backgroundColor: colors.accent },
   chipText: { color: colors.text, fontSize: 13 },
+  historyEntry: { backgroundColor: colors.surface2, borderRadius: 8, padding: 10 },
+  historyMeta: { color: colors.muted, fontSize: 12, marginBottom: 4 },
+  historyLine: { color: colors.text, fontSize: 13, marginTop: 2 },
 });

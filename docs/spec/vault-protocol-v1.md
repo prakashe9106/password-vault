@@ -96,7 +96,12 @@ This is the JSON structure that results from decrypting `payload.ciphertext` wit
   "logins": [
     { "id": "uuid", "title": "string", "url": "string", "username": "string",
       "password": "string", "notes": "string", "folder_id": "uuid|null",
-      "created_at": "ISO-8601", "updated_at": "ISO-8601" }
+      "created_at": "ISO-8601", "updated_at": "ISO-8601",
+      "history": [
+        { "changed_at": "ISO-8601", "title": "string", "url": "string", "username": "string",
+          "password": "string", "notes": "string", "folder_id": "uuid|null" }
+      ]
+    }
   ],
   "folders": [
     { "id": "uuid", "name": "string", "created_at": "ISO-8601", "updated_at": "ISO-8601" }
@@ -115,6 +120,8 @@ This is the JSON structure that results from decrypting `payload.ciphertext` wit
 ```
 
 `sync_metadata` is populated starting in this increment (single device, so `conflict_markers` stays empty) so that the future Google Drive sync phase (PRD §6) does not require a format migration to add the field.
+
+Each login's `history` holds snapshots of its previously-saved field values (newest first), capped at `MAX_LOGIN_HISTORY_ENTRIES` (20). A snapshot is recorded whenever `title`, `url`, `username`, `password`, `notes`, or `folder_id` actually changes; a save with no changes adds nothing. This is purely additive to the format — older encrypted vaults decrypt fine with `history` absent on their logins, since there is no runtime schema validation on the decrypted JSON (just a type cast), so every reader treats a missing `history` as `[]` rather than requiring a format-version bump.
 
 ## 5. Operational flows
 
