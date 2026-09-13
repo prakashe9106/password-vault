@@ -74,7 +74,7 @@ export default function LoginDetailScreen({ login, folders, onEdit, onClose }: P
           </View>
           {passwordStatus && <Text style={styles.status}>{passwordStatus}</Text>}
         </View>
-        {login.custom_fields.map((field) => (
+        {(login.custom_fields ?? []).map((field) => (
           <DetailField key={field.label} label={field.label} value={field.value} />
         ))}
         <View style={styles.field}>

@@ -82,7 +82,7 @@ export default function LoginDetailScreen({ login, folders, onEdit, onClose }: P
           </p>
         )}
       </div>
-      {login.custom_fields.map((field) => (
+      {(login.custom_fields ?? []).map((field) => (
         <CopyableField key={field.label} label={field.label} value={field.value} />
       ))}
       <div>
