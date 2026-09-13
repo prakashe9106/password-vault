@@ -1,9 +1,18 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * Thin wrapper around Google Identity Services' client-side OAuth token flow. Deliberately
- * no backend involvement (see docs/google-drive-setup.md and the Phase 2 plan): access tokens
- * live only in memory here, are never persisted, and expire in ~1 hour.
+ * Google Drive auth via OAuth 2.0 Implicit Grant, using a full-page redirect — deliberately NOT
+ * a popup (unreliable across every environment tested: corporate desktop, personal phone on
+ * wifi, personal phone on cellular) and NOT Authorization Code + PKCE either, since Google's
+ * "Web application" client type requires a client_secret for the code-exchange step even with
+ * PKCE, which a pure static site with no backend can't keep. Implicit grant hands the access
+ * token back directly in the redirect URL's fragment, with no exchange step and therefore no
+ * secret needed — the right fit for this architecture. Tradeoff: no refresh token, so there's no
+ * true silent renewal; requestAccessToken(false) just fails and lets the existing
+ * offline-pending fallback in syncStore.ts handle it, the same path already used for other
+ * sync failures.
+ *
+ * The access token lives only in memory here, same as before — never persisted.
  */
 
 const SCOPES = [
@@ -12,41 +21,9 @@ const SCOPES = [
   "https://www.googleapis.com/auth/userinfo.profile",
 ].join(" ");
 
-const GIS_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
-
-interface TokenResponse {
-  access_token?: string;
-  error?: string;
-  error_description?: string;
-}
-
-interface TokenClientOverrides {
-  prompt?: string;
-  callback?: (response: TokenResponse) => void;
-  error_callback?: (error: { type: string }) => void;
-}
-
-interface TokenClient {
-  requestAccessToken: (overrides?: TokenClientOverrides) => void;
-}
-
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        oauth2: {
-          initTokenClient: (config: {
-            client_id: string;
-            scope: string;
-            callback: (response: TokenResponse) => void;
-            error_callback?: (error: { type: string }) => void;
-          }) => TokenClient;
-          revoke: (accessToken: string, done: () => void) => void;
-        };
-      };
-    };
-  }
-}
+const AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
+const REVOKE_ENDPOINT = "https://oauth2.googleapis.com/revoke";
+const STATE_KEY = "google_oauth_state";
 
 export interface GoogleProfile {
   email: string;
@@ -84,52 +61,22 @@ export function isGoogleDriveConfigured(): boolean {
   return Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 }
 
-let scriptLoadPromise: Promise<void> | null = null;
-
-function loadGisScript(): Promise<void> {
-  if (window.google?.accounts?.oauth2) return Promise.resolve();
-  if (!scriptLoadPromise) {
-    scriptLoadPromise = new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = GIS_SCRIPT_SRC;
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Failed to load Google Identity Services script."));
-      document.head.appendChild(script);
-    });
-  }
-  return scriptLoadPromise;
+function clientId(): string {
+  return import.meta.env.VITE_GOOGLE_CLIENT_ID;
 }
 
-let tokenClient: TokenClient | null = null;
-
-async function getTokenClient(): Promise<TokenClient> {
-  await loadGisScript();
-  if (!tokenClient) {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    tokenClient = window.google!.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: SCOPES,
-      callback: () => {
-        // Overridden per-call in requestToken() below.
-      },
-    });
-  }
-  return tokenClient;
+function redirectUri(): string {
+  return window.location.origin;
 }
 
-// Start loading the GIS script and creating the token client as soon as this module is
-// imported (well before any click), so that by the time the user actually clicks "Sign in",
-// getTokenClient() resolves from cache instead of awaiting a real network fetch. Awaiting a
-// fetch inside a click handler consumes the click's "user activation" on strict mobile
-// browsers, which silently blocks or breaks the popup this flow depends on — this is why the
-// same "stuck on Connecting..." symptom showed up on a personal phone over cellular data too,
-// not just the corporate network.
-if (isGoogleDriveConfigured()) {
-  void getTokenClient().catch(() => {
-    // Ignore — a real failure here just means the first actual sign-in click will retry it
-    // and surface the error through requestAccessToken()'s normal error handling.
-  });
+function base64UrlEncode(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function randomState(): string {
+  return base64UrlEncode(crypto.getRandomValues(new Uint8Array(16)));
 }
 
 async function fetchProfile(accessToken: string): Promise<GoogleProfile> {
@@ -141,46 +88,86 @@ async function fetchProfile(accessToken: string): Promise<GoogleProfile> {
   return { email: data.email ?? "", name: data.name ?? "" };
 }
 
+function hashParams(): URLSearchParams {
+  return new URLSearchParams(window.location.hash.replace(/^#/, ""));
+}
+
+/** True if the current URL is a Google redirect callback (success or error). */
+export function isGoogleRedirectCallback(): boolean {
+  const hash = hashParams();
+  return hash.has("access_token") || hash.has("error") || new URLSearchParams(window.location.search).has("error");
+}
+
+/** Kicks off the redirect to Google's consent screen. Navigates away — does not return a token
+ * directly; the result comes back via handleRedirectCallback() on the next page load. */
+export function beginSignIn(): void {
+  const oauthState = randomState();
+  sessionStorage.setItem(STATE_KEY, oauthState);
+
+  const params = new URLSearchParams({
+    client_id: clientId(),
+    redirect_uri: redirectUri(),
+    response_type: "token",
+    scope: SCOPES,
+    include_granted_scopes: "true",
+    state: oauthState,
+  });
+  window.location.href = `${AUTH_ENDPOINT}?${params.toString()}`;
+}
+
+export interface RedirectCallbackResult {
+  accessToken: string;
+}
+
+/** Call once on app startup. Returns null if the current URL isn't a Google redirect callback. */
+export async function handleRedirectCallback(): Promise<RedirectCallbackResult | null> {
+  if (!isGoogleRedirectCallback()) return null;
+
+  const hash = hashParams();
+  const accessToken = hash.get("access_token");
+  const returnedState = hash.get("state");
+  const authError = hash.get("error") ?? new URLSearchParams(window.location.search).get("error");
+
+  const expectedState = sessionStorage.getItem(STATE_KEY);
+  sessionStorage.removeItem(STATE_KEY);
+  const cleanUrl = () => window.history.replaceState({}, "", window.location.pathname);
+
+  if (authError) {
+    cleanUrl();
+    const message = `Google sign-in failed: ${authError}`;
+    setState({ status: "error", error: message });
+    throw new Error(message);
+  }
+
+  cleanUrl();
+  if (!accessToken || !expectedState || returnedState !== expectedState) {
+    const message = "Google sign-in failed: the request could not be verified. Please try again.";
+    setState({ status: "error", error: message });
+    throw new Error(message);
+  }
+
+  setState({ status: "authorizing", error: null });
+  const profile = await fetchProfile(accessToken);
+  setState({ status: "authorized", accessToken, profile, error: null });
+  return { accessToken };
+}
+
 /**
- * Requests a Drive access token. `interactive: false` attempts a silent (no-popup) grant, which
- * only succeeds if the user already authorized this app in this browser/session recently.
+ * No refresh token exists with implicit grant, so there's no true silent renewal — this always
+ * fails, and callers (syncStore's background retry on a 401) fall back to the existing
+ * offline-pending queue, same as any other sync failure.
  */
 export async function requestAccessToken(interactive: boolean): Promise<string> {
-  setState({ status: "authorizing", error: null });
-  const client = await getTokenClient();
-
-  return new Promise((resolve, reject) => {
-    client.requestAccessToken({
-      prompt: interactive ? "consent" : "",
-      callback: async (response: TokenResponse) => {
-        if (!response.access_token) {
-          const message = response.error_description ?? response.error ?? "Authorization failed.";
-          setState({ status: "error", error: message });
-          reject(new Error(message));
-          return;
-        }
-        try {
-          const profile = await fetchProfile(response.access_token);
-          setState({ status: "authorized", accessToken: response.access_token, profile, error: null });
-          resolve(response.access_token);
-        } catch (err) {
-          const message = err instanceof Error ? err.message : "Failed to load profile.";
-          setState({ status: "error", error: message });
-          reject(err);
-        }
-      },
-      error_callback: (error: { type: string }) => {
-        setState({ status: "error", error: error.type });
-        reject(new Error(error.type));
-      },
-    });
-  });
+  if (interactive) {
+    throw new Error("Interactive Google sign-in must go through beginSignIn(), not requestAccessToken().");
+  }
+  throw new Error("No stored Google session to silently refresh — sign in again.");
 }
 
 export function signOut(): void {
   const token = state.accessToken;
   setState({ status: "signed-out", accessToken: null, profile: null, error: null });
-  if (token && window.google?.accounts?.oauth2) {
-    window.google.accounts.oauth2.revoke(token, () => {});
+  if (token) {
+    void fetch(`${REVOKE_ENDPOINT}?token=${encodeURIComponent(token)}`, { method: "POST" }).catch(() => {});
   }
 }

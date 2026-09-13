@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { isGoogleDriveConfigured, signOut as googleSignOut } from "./lib/googleAuth";
+import {
+  handleRedirectCallback,
+  isGoogleDriveConfigured,
+  isGoogleRedirectCallback,
+  signOut as googleSignOut,
+} from "./lib/googleAuth";
 import { isOneDriveConfigured, signOut as oneDriveSignOut } from "./lib/oneDriveAuth";
 import { PROVIDER_LABELS, type StorageProvider } from "./lib/storageProvider";
 import { lockSession } from "./state/sessionStore";
@@ -32,7 +37,10 @@ function isAnyStorageConfigured(): boolean {
 }
 
 export default function App() {
-  const [phase, setPhase] = useState<Phase>(isAnyStorageConfigured() ? "connect-storage" : "not-configured");
+  const [phase, setPhase] = useState<Phase>(() => {
+    if (isGoogleRedirectCallback()) return "resolving";
+    return isAnyStorageConfigured() ? "connect-storage" : "not-configured";
+  });
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [connectedProvider, setConnectedProvider] = useState<StorageProvider | null>(null);
   const [vaultMeta, setVaultMeta] = useState<VaultMeta | null>(null);
@@ -45,6 +53,19 @@ export default function App() {
     window.addEventListener("online", retry);
     return () => window.removeEventListener("online", retry);
   }, [accessToken, connectedProvider]);
+
+  useEffect(() => {
+    if (!isGoogleRedirectCallback()) return;
+    handleRedirectCallback()
+      .then((result) => {
+        if (result) void handleConnected(result.accessToken, "google-drive");
+      })
+      .catch((err) => {
+        setResolveError(err instanceof Error ? err.message : "Google sign-in failed.");
+        setPhase("connect-storage");
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleConnected(token: string, provider: StorageProvider) {
     setAccessToken(token);

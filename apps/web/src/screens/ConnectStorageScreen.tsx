@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { isGoogleDriveConfigured, requestAccessToken as requestGoogleAccessToken } from "../lib/googleAuth";
+import { beginSignIn as beginGoogleSignIn, isGoogleDriveConfigured } from "../lib/googleAuth";
 import { isOneDriveConfigured, requestAccessToken as requestOneDriveAccessToken } from "../lib/oneDriveAuth";
 import type { StorageProvider } from "../lib/storageProvider";
 
@@ -15,8 +15,13 @@ export default function ConnectStorageScreen({ onConnected }: Props) {
     setBusy(provider);
     setError(null);
     try {
-      const token =
-        provider === "google-drive" ? await requestGoogleAccessToken(true) : await requestOneDriveAccessToken(true);
+      if (provider === "google-drive") {
+        // Navigates away — the result comes back via App.tsx's redirect-callback handling on
+        // the next page load, not from this call.
+        beginGoogleSignIn();
+        return;
+      }
+      const token = await requestOneDriveAccessToken(true);
       onConnected(token, provider);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-in failed.");

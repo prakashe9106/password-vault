@@ -16,8 +16,9 @@ for display) on your behalf. This only needs to be done once per developer envir
    - Application type: **Web application**.
    - Authorized JavaScript origins: add `http://localhost:5173` (the Vite dev server's default
      origin). Add your production origin here too once you have one.
-   - Leave "Authorized redirect URIs" empty — the client-side token flow this app uses doesn't
-     redirect.
+   - Authorized redirect URIs: add the same origins again here (`http://localhost:5173`, and your
+     production origin) — the app signs in via a full-page redirect (see below), which needs this
+     exact-match field set, unlike the JavaScript-origins field above.
 4. Copy the generated **Client ID** (looks like `1234567890-abc...apps.googleusercontent.com`).
 5. In `apps/web/`, copy `.env.example` to `.env` and paste the Client ID:
    ```
@@ -28,6 +29,11 @@ for display) on your behalf. This only needs to be done once per developer envir
 Until this is done, the app shows a "Google Drive isn't configured yet" screen instead of a
 sign-in button — it doesn't need any of this to build or run its test suite.
 
-No client secret is involved: this app only ever runs Google's client-side token flow (Google
-Identity Services), never the server-side authorization-code flow, so nothing here is sensitive
-enough to need a backend.
+No client secret is involved: sign-in uses OAuth 2.0 Implicit Grant via a full-page redirect (not
+a popup — popup-based sign-in turned out to be unreliable across several real browser/network
+environments during testing; Authorization Code + PKCE was also tried, but Google's "Web
+application" client type requires a client secret for the code-exchange step even with PKCE, which
+a backend-less static site can't keep). Implicit grant hands the access token back directly in the
+redirect, with no exchange step and therefore no secret needed — the tradeoff is no refresh token,
+so there's no true silent renewal of an expired token; a failed background sync just queues as
+pending until the next active session, the same fallback already used for other sync failures.
