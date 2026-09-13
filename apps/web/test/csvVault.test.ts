@@ -114,7 +114,16 @@ describe("rowsToImportedLogins", () => {
     const imported = rowsToImportedLogins(rows, headers, mapping);
     expect(imported).toEqual([
       {
-        values: { title: "Site A", url: "", username: "", password: "pw123", notes: "", folder_id: null },
+        values: {
+          title: "Site A",
+          url: "",
+          username: "",
+          password: "pw123",
+          notes: "",
+          folder_id: null,
+          category: "login",
+          custom_fields: [],
+        },
         folderName: null,
       },
     ]);

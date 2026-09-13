@@ -91,6 +91,8 @@ export function rowsToImportedLogins(rows: string[][], headers: string[], mappin
         password: cell(row, indices.password),
         notes: cell(row, indices.notes),
         folder_id: null,
+        category: "login",
+        custom_fields: [],
       },
       folderName: folderName ? folderName : null,
     };
