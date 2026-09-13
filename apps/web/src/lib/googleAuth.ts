@@ -118,6 +118,20 @@ async function getTokenClient(): Promise<TokenClient> {
   return tokenClient;
 }
 
+// Start loading the GIS script and creating the token client as soon as this module is
+// imported (well before any click), so that by the time the user actually clicks "Sign in",
+// getTokenClient() resolves from cache instead of awaiting a real network fetch. Awaiting a
+// fetch inside a click handler consumes the click's "user activation" on strict mobile
+// browsers, which silently blocks or breaks the popup this flow depends on — this is why the
+// same "stuck on Connecting..." symptom showed up on a personal phone over cellular data too,
+// not just the corporate network.
+if (isGoogleDriveConfigured()) {
+  void getTokenClient().catch(() => {
+    // Ignore — a real failure here just means the first actual sign-in click will retry it
+    // and surface the error through requestAccessToken()'s normal error handling.
+  });
+}
+
 async function fetchProfile(accessToken: string): Promise<GoogleProfile> {
   const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
     headers: { Authorization: `Bearer ${accessToken}` },
