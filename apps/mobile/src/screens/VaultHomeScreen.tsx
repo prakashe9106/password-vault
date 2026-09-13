@@ -10,6 +10,7 @@ import { lockSession, persistAndNotify, useSession } from "../state/sessionStore
 import { resolveConflictKeepMine, resolveConflictUseTheirs, uploadNow, useSyncState } from "../state/syncStore";
 import { loadContainer } from "../storage/vaultStorage";
 import LoginEditorScreen, { type LoginFormValues } from "./LoginEditorScreen";
+import LoginDetailScreen from "./LoginDetailScreen";
 import SettingsScreen from "./SettingsScreen";
 import SummaryScreen from "./SummaryScreen";
 import ConflictResolutionScreen from "./ConflictResolutionScreen";
@@ -36,6 +37,7 @@ export default function VaultHomeScreen({ accessToken, driveEmail, onLocked, onD
   const [selectedFolderId, setSelectedFolderId] = useState<string | null | "all">("all");
   const [query, setQuery] = useState("");
   const [editorState, setEditorState] = useState<"closed" | "new" | Login>("closed");
+  const [viewingLogin, setViewingLogin] = useState<Login | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
 
@@ -126,7 +128,12 @@ export default function VaultHomeScreen({ accessToken, driveEmail, onLocked, onD
         contentContainerStyle={styles.list}
         ListEmptyComponent={<Text style={styles.empty}>No logins here yet.</Text>}
         renderItem={({ item }) => (
-          <LoginListItem login={item} onEdit={() => setEditorState(item)} onDelete={() => handleDeleteLogin(item.id)} />
+          <LoginListItem
+            login={item}
+            onView={() => setViewingLogin(item)}
+            onEdit={() => setEditorState(item)}
+            onDelete={() => handleDeleteLogin(item.id)}
+          />
         )}
       />
 
@@ -141,6 +148,18 @@ export default function VaultHomeScreen({ accessToken, driveEmail, onLocked, onD
           defaultFolderId={selectedFolderId === "all" ? null : selectedFolderId}
           onSave={handleSaveLogin}
           onCancel={() => setEditorState("closed")}
+        />
+      )}
+
+      {viewingLogin && (
+        <LoginDetailScreen
+          login={viewingLogin}
+          folders={unlockedVault.folders}
+          onEdit={() => {
+            setEditorState(viewingLogin);
+            setViewingLogin(null);
+          }}
+          onClose={() => setViewingLogin(null)}
         />
       )}
 

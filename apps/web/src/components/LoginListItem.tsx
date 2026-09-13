@@ -1,32 +1,16 @@
 import { useState } from "react";
 import type { Login } from "@vault/core";
 import { CATEGORY_LABELS } from "@vault/core";
-
-const CLIPBOARD_CLEAR_MS = 20_000;
+import { copyAndAutoClear } from "../lib/clipboard";
 
 interface Props {
   login: Login;
+  onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-async function copyAndAutoClear(value: string, setStatus: (s: string | null) => void): Promise<void> {
-  await navigator.clipboard.writeText(value);
-  setStatus("Copied — clipboard clears in 20s");
-  setTimeout(async () => {
-    try {
-      const current = await navigator.clipboard.readText();
-      if (current === value) {
-        await navigator.clipboard.writeText("");
-      }
-    } catch {
-      // Clipboard read permission may be unavailable; nothing more we can safely do.
-    }
-    setStatus(null);
-  }, CLIPBOARD_CLEAR_MS);
-}
-
-export default function LoginListItem({ login, onEdit, onDelete }: Props) {
+export default function LoginListItem({ login, onView, onEdit, onDelete }: Props) {
   const [revealed, setRevealed] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -52,6 +36,9 @@ export default function LoginListItem({ login, onEdit, onDelete }: Props) {
         )}
       </div>
       <div className="row">
+        <button className="secondary" onClick={onView}>
+          View
+        </button>
         <button className="secondary" onClick={() => setRevealed((r) => !r)}>
           {revealed ? "Hide" : "Show"}
         </button>

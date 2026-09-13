@@ -1,29 +1,18 @@
 import { useState } from "react";
-import * as Clipboard from "expo-clipboard";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Login } from "@vault/core";
 import { CATEGORY_LABELS } from "@vault/core";
+import { copyAndAutoClear } from "../lib/clipboard";
 import { colors } from "../theme";
-
-const CLIPBOARD_CLEAR_MS = 20_000;
 
 interface Props {
   login: Login;
+  onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-async function copyAndAutoClear(value: string, setStatus: (s: string | null) => void): Promise<void> {
-  await Clipboard.setStringAsync(value);
-  setStatus("Copied — clipboard clears in 20s");
-  setTimeout(async () => {
-    const current = await Clipboard.getStringAsync().catch(() => null);
-    if (current === value) await Clipboard.setStringAsync("");
-    setStatus(null);
-  }, CLIPBOARD_CLEAR_MS);
-}
-
-export default function LoginListItem({ login, onEdit, onDelete }: Props) {
+export default function LoginListItem({ login, onView, onEdit, onDelete }: Props) {
   const [revealed, setRevealed] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -43,6 +32,9 @@ export default function LoginListItem({ login, onEdit, onDelete }: Props) {
         </Text>
       )}
       <View style={styles.row}>
+        <Pressable style={styles.chip} onPress={onView}>
+          <Text style={styles.chipText}>View</Text>
+        </Pressable>
         <Pressable style={styles.chip} onPress={() => setRevealed((r) => !r)}>
           <Text style={styles.chipText}>{revealed ? "Hide" : "Show"}</Text>
         </Pressable>

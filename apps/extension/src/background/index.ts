@@ -135,6 +135,8 @@ async function handlePopupMessage(message: PopupToBackgroundMessage): Promise<un
         password: pending.password,
         notes: "",
         folder_id: message.folderId,
+        category: "login",
+        custom_fields: [],
       });
       await persistLiveVault();
       await clearPendingSave();

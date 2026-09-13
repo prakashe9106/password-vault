@@ -4,6 +4,7 @@ import { CATEGORY_LABELS } from "@vault/core";
 import { sendToBackground } from "../../lib/messaging";
 import { matchLoginsForOrigin } from "../../lib/matching";
 import LoginEditorScreen, { type LoginFormValues } from "./LoginEditorScreen";
+import LoginDetailScreen from "./LoginDetailScreen";
 import SettingsScreen from "./SettingsScreen";
 import SummaryScreen from "./SummaryScreen";
 
@@ -19,6 +20,7 @@ export default function VaultHomeScreen({ onLocked }: Props) {
   const [activeOrigin, setActiveOrigin] = useState<string | null>(null);
   const [hasLoginForm, setHasLoginForm] = useState(false);
   const [editorState, setEditorState] = useState<"closed" | "new" | Login>("closed");
+  const [viewingLogin, setViewingLogin] = useState<Login | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [fillStatus, setFillStatus] = useState<string | null>(null);
@@ -119,6 +121,9 @@ export default function VaultHomeScreen({ onLocked }: Props) {
               </span>
               <div className="row">
                 {matchingIds.has(login.id) && <button onClick={() => handleFill(login.id)}>Fill</button>}
+                <button className="secondary" onClick={() => setViewingLogin(login)}>
+                  View
+                </button>
                 <button className="secondary" onClick={() => setEditorState(login)}>
                   Edit
                 </button>
@@ -155,6 +160,18 @@ export default function VaultHomeScreen({ onLocked }: Props) {
           folders={folders}
           onSave={handleSaveLogin}
           onCancel={() => setEditorState("closed")}
+        />
+      )}
+
+      {viewingLogin && (
+        <LoginDetailScreen
+          login={viewingLogin}
+          folders={folders}
+          onEdit={() => {
+            setEditorState(viewingLogin);
+            setViewingLogin(null);
+          }}
+          onClose={() => setViewingLogin(null)}
         />
       )}
 

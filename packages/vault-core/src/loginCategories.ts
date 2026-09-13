@@ -15,7 +15,7 @@ export const CATEGORY_LABELS: Record<LoginCategory, string> = {
 
 export const CATEGORY_FIELD_TEMPLATES: Record<LoginCategory, string[]> = {
   login: [],
-  bank: ["Bank name", "Account number", "IFSC / routing number", "Branch", "Customer care number"],
+  bank: ["Bank name", "Account number", "Customer ID", "IFSC / routing number", "Branch", "Customer care number"],
   card: ["Card number", "Cardholder name", "Expiry date", "CVV", "PIN"],
   social: ["Recovery email", "Backup codes"],
   email: ["Recovery phone", "App password"],

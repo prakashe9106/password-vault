@@ -13,6 +13,7 @@ import FolderSidebar from "../components/FolderSidebar";
 import SearchBar from "../components/SearchBar";
 import LoginListItem from "../components/LoginListItem";
 import LoginEditorScreen, { type LoginFormValues } from "./LoginEditorScreen";
+import LoginDetailScreen from "./LoginDetailScreen";
 import SettingsScreen from "./SettingsScreen";
 import SummaryScreen from "./SummaryScreen";
 import ImportVaultScreen from "./ImportVaultScreen";
@@ -48,6 +49,7 @@ export default function VaultHomeShell({ connectedProvider, onLocked, onDisconne
   const [selectedFolderId, setSelectedFolderId] = useState<string | null | "all">("all");
   const [query, setQuery] = useState("");
   const [editorState, setEditorState] = useState<"closed" | "new" | Login>("closed");
+  const [viewingLogin, setViewingLogin] = useState<Login | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -170,6 +172,7 @@ export default function VaultHomeShell({ connectedProvider, onLocked, onDisconne
               <LoginListItem
                 key={login.id}
                 login={login}
+                onView={() => setViewingLogin(login)}
                 onEdit={() => setEditorState(login)}
                 onDelete={() => handleDeleteLogin(login.id)}
               />
@@ -185,6 +188,18 @@ export default function VaultHomeShell({ connectedProvider, onLocked, onDisconne
           defaultFolderId={selectedFolderId === "all" ? null : selectedFolderId}
           onSave={handleSaveLogin}
           onCancel={() => setEditorState("closed")}
+        />
+      )}
+
+      {viewingLogin && (
+        <LoginDetailScreen
+          login={viewingLogin}
+          folders={unlockedVault.folders}
+          onEdit={() => {
+            setEditorState(viewingLogin);
+            setViewingLogin(null);
+          }}
+          onClose={() => setViewingLogin(null)}
         />
       )}
 
