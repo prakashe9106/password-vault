@@ -2,6 +2,7 @@ import { useState } from "react";
 import * as Clipboard from "expo-clipboard";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Login } from "@vault/core";
+import { CATEGORY_LABELS } from "@vault/core";
 import { colors } from "../theme";
 
 const CLIPBOARD_CLEAR_MS = 20_000;
@@ -28,7 +29,10 @@ export default function LoginListItem({ login, onEdit, onDelete }: Props) {
 
   return (
     <View style={styles.item}>
-      <Text style={styles.title}>{login.title}</Text>
+      <Text style={styles.title}>
+        {login.title}
+        {login.category && login.category !== "login" ? ` · ${CATEGORY_LABELS[login.category]}` : ""}
+      </Text>
       <Text style={styles.meta}>
         {login.username} · {login.url}
       </Text>

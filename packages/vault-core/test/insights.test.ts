@@ -13,6 +13,8 @@ function login(overrides: Partial<Login>): Login {
     password: "SomeStrongP@ssw0rd!",
     notes: "",
     folder_id: null,
+    category: "login",
+    custom_fields: [],
     created_at: NOW.toISOString(),
     updated_at: NOW.toISOString(),
     history: [],

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Login } from "@vault/core";
+import { CATEGORY_LABELS } from "@vault/core";
 
 const CLIPBOARD_CLEAR_MS = 20_000;
 
@@ -32,7 +33,14 @@ export default function LoginListItem({ login, onEdit, onDelete }: Props) {
   return (
     <li className="login-item">
       <div>
-        <div className="login-item-title">{login.title}</div>
+        <div className="login-item-title">
+          {login.title}
+          {login.category && login.category !== "login" && (
+            <span className="hint-text" style={{ marginLeft: "0.5rem", fontSize: "0.75rem" }}>
+              {CATEGORY_LABELS[login.category]}
+            </span>
+          )}
+        </div>
         <div className="login-item-meta">
           {login.username} · {login.url}
         </div>

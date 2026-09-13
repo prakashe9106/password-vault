@@ -11,6 +11,8 @@ function login(overrides: Partial<Login> = {}): Login {
     password: "hunter2",
     notes: "some notes",
     folder_id: null,
+    category: "login",
+    custom_fields: [],
     created_at: "2024-01-01T00:00:00.000Z",
     updated_at: "2024-01-01T00:00:00.000Z",
     history: [],

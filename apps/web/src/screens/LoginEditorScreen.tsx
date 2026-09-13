@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { Folder, Login } from "@vault/core";
+import type { CustomField, Folder, Login, LoginCategory } from "@vault/core";
+import { CATEGORY_LABELS, LOGIN_CATEGORIES, defaultCustomFieldsForCategory } from "@vault/core";
 import PasswordGeneratorPanel from "../components/PasswordGeneratorPanel";
 import Modal from "../components/Modal";
 
@@ -10,6 +11,8 @@ export interface LoginFormValues {
   password: string;
   notes: string;
   folder_id: string | null;
+  category: LoginCategory;
+  custom_fields: CustomField[];
 }
 
 interface Props {
@@ -33,12 +36,25 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
     password: existing?.password ?? "",
     notes: existing?.notes ?? "",
     folder_id: existing?.folder_id ?? defaultFolderId ?? null,
+    category: existing?.category ?? "login",
+    custom_fields: existing?.custom_fields ?? [],
   });
   const [showGenerator, setShowGenerator] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
   function update<K extends keyof LoginFormValues>(key: K, value: LoginFormValues[K]) {
     setValues((v) => ({ ...v, [key]: value }));
+  }
+
+  function updateCustomField(index: number, value: string) {
+    setValues((v) => ({
+      ...v,
+      custom_fields: v.custom_fields.map((f, i) => (i === index ? { ...f, value } : f)),
+    }));
+  }
+
+  function handleCategoryChange(category: LoginCategory) {
+    setValues((v) => ({ ...v, category, custom_fields: defaultCustomFieldsForCategory(category) }));
   }
 
   return (
@@ -50,6 +66,20 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
             onSave(values);
           }}
         >
+          <div className="field">
+            <label htmlFor="category">Category</label>
+            <select
+              id="category"
+              value={values.category}
+              onChange={(e) => handleCategoryChange(e.target.value as LoginCategory)}
+            >
+              {LOGIN_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {CATEGORY_LABELS[c]}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="field">
             <label htmlFor="title">Title</label>
             <input id="title" value={values.title} onChange={(e) => update("title", e.target.value)} required />
@@ -101,6 +131,12 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
               ))}
             </select>
           </div>
+          {values.custom_fields.map((field, i) => (
+            <div className="field" key={field.label}>
+              <label htmlFor={`custom-${i}`}>{field.label}</label>
+              <input id={`custom-${i}`} value={field.value} onChange={(e) => updateCustomField(i, e.target.value)} />
+            </div>
+          ))}
           <div className="field">
             <label htmlFor="notes">Notes</label>
             <textarea id="notes" rows={3} value={values.notes} onChange={(e) => update("notes", e.target.value)} />
@@ -120,11 +156,17 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
                       <p className="hint-text" style={{ margin: "0 0 0.5rem" }}>
                         Changed {new Date(entry.changed_at).toLocaleString()}
                       </p>
+                      <p style={{ margin: "0.2rem 0" }}>Category: {CATEGORY_LABELS[entry.category ?? "login"]}</p>
                       <p style={{ margin: "0.2rem 0" }}>Title: {entry.title}</p>
                       <p style={{ margin: "0.2rem 0" }}>Website URL: {entry.url}</p>
                       <p style={{ margin: "0.2rem 0" }}>Username: {entry.username}</p>
                       <p style={{ margin: "0.2rem 0" }}>Password: {entry.password}</p>
                       <p style={{ margin: "0.2rem 0" }}>Folder: {folderName(folders, entry.folder_id)}</p>
+                      {(entry.custom_fields ?? []).map((f) => (
+                        <p style={{ margin: "0.2rem 0" }} key={f.label}>
+                          {f.label}: {f.value || "(empty)"}
+                        </p>
+                      ))}
                       <p style={{ margin: "0.2rem 0" }}>Notes: {entry.notes || "(none)"}</p>
                     </div>
                   ))}

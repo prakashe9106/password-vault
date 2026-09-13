@@ -1,6 +1,7 @@
 /// <reference path="./types/libsodium-wrappers-sumo.d.ts" />
 export * from "./schema.js";
 export * from "./errors.js";
+export { CATEGORY_LABELS, CATEGORY_FIELD_TEMPLATES, LOGIN_CATEGORIES, defaultCustomFieldsForCategory } from "./loginCategories.js";
 export {
   ready,
   randomBytes,

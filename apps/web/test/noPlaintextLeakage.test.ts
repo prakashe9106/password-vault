@@ -50,6 +50,8 @@ describe("no plaintext leakage to Drive", () => {
       password: PLAINTEXT_PASSWORD,
       notes: "",
       folder_id: null,
+      category: "login",
+      custom_fields: [],
     });
     const raw = serializeContainer(unlockedVault.serialize());
 

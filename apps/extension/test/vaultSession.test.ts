@@ -43,6 +43,8 @@ describe("service worker restart survival", () => {
       password: "p",
       notes: "",
       folder_id: null,
+      category: "login",
+      custom_fields: [],
     });
     await mod1.persistLiveVault();
 
@@ -130,6 +132,8 @@ describe("no plaintext leakage to chrome.storage.local", () => {
       password: PLAINTEXT_PASSWORD,
       notes: "",
       folder_id: null,
+      category: "login",
+      custom_fields: [],
     });
     await mod.persistLiveVault();
 

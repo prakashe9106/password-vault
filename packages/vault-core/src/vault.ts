@@ -139,9 +139,10 @@ export class UnlockedVault {
     const current = this.data.logins[idx]!;
     const next: Login = { ...current, ...patch, updated_at: new Date().toISOString() };
 
-    const trackedFields = ["title", "url", "username", "password", "notes", "folder_id"] as const;
-    const changed = trackedFields.some((field) => next[field] !== current[field]);
-    if (changed) {
+    const trackedScalarFields = ["title", "url", "username", "password", "notes", "folder_id", "category"] as const;
+    const scalarChanged = trackedScalarFields.some((field) => next[field] !== current[field]);
+    const customFieldsChanged = JSON.stringify(next.custom_fields) !== JSON.stringify(current.custom_fields);
+    if (scalarChanged || customFieldsChanged) {
       const snapshot: LoginHistoryEntry = {
         changed_at: next.updated_at,
         title: current.title,
@@ -150,6 +151,8 @@ export class UnlockedVault {
         password: current.password,
         notes: current.notes,
         folder_id: current.folder_id,
+        category: current.category,
+        custom_fields: current.custom_fields,
       };
       next.history = [snapshot, ...current.history].slice(0, MAX_LOGIN_HISTORY_ENTRIES);
     }

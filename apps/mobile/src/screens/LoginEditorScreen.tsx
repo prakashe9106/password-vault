@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import type { Folder, Login } from "@vault/core";
-import { defaultGeneratorRules, generatePasswordAsync } from "@vault/core";
+import type { CustomField, Folder, Login, LoginCategory } from "@vault/core";
+import {
+  CATEGORY_LABELS,
+  LOGIN_CATEGORIES,
+  defaultCustomFieldsForCategory,
+  defaultGeneratorRules,
+  generatePasswordAsync,
+} from "@vault/core";
 import AppButton from "../components/AppButton";
 import FormField from "../components/FormField";
 import { Heading } from "../components/Typography";
@@ -14,6 +20,8 @@ export interface LoginFormValues {
   password: string;
   notes: string;
   folder_id: string | null;
+  category: LoginCategory;
+  custom_fields: CustomField[];
 }
 
 interface Props {
@@ -37,12 +45,25 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
     password: existing?.password ?? "",
     notes: existing?.notes ?? "",
     folder_id: existing?.folder_id ?? defaultFolderId ?? null,
+    category: existing?.category ?? "login",
+    custom_fields: existing?.custom_fields ?? [],
   });
   const [generating, setGenerating] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
   function update<K extends keyof LoginFormValues>(key: K, value: LoginFormValues[K]) {
     setValues((v) => ({ ...v, [key]: value }));
+  }
+
+  function updateCustomField(index: number, value: string) {
+    setValues((v) => ({
+      ...v,
+      custom_fields: v.custom_fields.map((f, i) => (i === index ? { ...f, value } : f)),
+    }));
+  }
+
+  function handleCategoryChange(category: LoginCategory) {
+    setValues((v) => ({ ...v, category, custom_fields: defaultCustomFieldsForCategory(category) }));
   }
 
   async function handleGenerate() {
@@ -59,6 +80,18 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
     <Modal animationType="slide" presentationStyle="pageSheet" onRequestClose={onCancel}>
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Heading>{existing ? "Edit login" : "Add login"}</Heading>
+        <Text style={styles.label}>Category</Text>
+        <View style={styles.chipRow}>
+          {LOGIN_CATEGORIES.map((c) => (
+            <Pressable
+              key={c}
+              style={[styles.chip, values.category === c && styles.chipActive]}
+              onPress={() => handleCategoryChange(c)}
+            >
+              <Text style={styles.chipText}>{CATEGORY_LABELS[c]}</Text>
+            </Pressable>
+          ))}
+        </View>
         <FormField label="Title" value={values.title} onChangeText={(t) => update("title", t)} />
         <FormField
           label="Website URL"
@@ -89,6 +122,14 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
             </Pressable>
           ))}
         </View>
+        {values.custom_fields.map((field, i) => (
+          <FormField
+            key={field.label}
+            label={field.label}
+            value={field.value}
+            onChangeText={(t) => updateCustomField(i, t)}
+          />
+        ))}
         <FormField
           label="Notes"
           value={values.notes}
@@ -108,11 +149,17 @@ export default function LoginEditorScreen({ existing, folders, defaultFolderId, 
                 {existing.history.map((entry, i) => (
                   <View key={i} style={styles.historyEntry}>
                     <Text style={styles.historyMeta}>Changed {new Date(entry.changed_at).toLocaleString()}</Text>
+                    <Text style={styles.historyLine}>Category: {CATEGORY_LABELS[entry.category ?? "login"]}</Text>
                     <Text style={styles.historyLine}>Title: {entry.title}</Text>
                     <Text style={styles.historyLine}>Website URL: {entry.url}</Text>
                     <Text style={styles.historyLine}>Username: {entry.username}</Text>
                     <Text style={styles.historyLine}>Password: {entry.password}</Text>
                     <Text style={styles.historyLine}>Folder: {folderName(folders, entry.folder_id)}</Text>
+                    {(entry.custom_fields ?? []).map((f) => (
+                      <Text style={styles.historyLine} key={f.label}>
+                        {f.label}: {f.value || "(empty)"}
+                      </Text>
+                    ))}
                     <Text style={styles.historyLine}>Notes: {entry.notes || "(none)"}</Text>
                   </View>
                 ))}

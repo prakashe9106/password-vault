@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Folder, Login, VaultSettings } from "@vault/core";
+import { CATEGORY_LABELS } from "@vault/core";
 import { sendToBackground } from "../../lib/messaging";
 import { matchLoginsForOrigin } from "../../lib/matching";
 import LoginEditorScreen, { type LoginFormValues } from "./LoginEditorScreen";
@@ -108,7 +109,14 @@ export default function VaultHomeScreen({ onLocked }: Props) {
         <ul className="login-list">
           {filtered.map((login) => (
             <li key={login.id} className="login-row">
-              <span className="login-title">{login.title}</span>
+              <span className="login-title">
+                {login.title}
+                {login.category && login.category !== "login" && (
+                  <span className="hint" style={{ marginLeft: "0.4rem", fontSize: "0.7rem" }}>
+                    {CATEGORY_LABELS[login.category]}
+                  </span>
+                )}
+              </span>
               <div className="row">
                 {matchingIds.has(login.id) && <button onClick={() => handleFill(login.id)}>Fill</button>}
                 <button className="secondary" onClick={() => setEditorState(login)}>

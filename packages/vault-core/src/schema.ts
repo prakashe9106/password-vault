@@ -1,5 +1,9 @@
 /** Vault data model and container types — see docs/spec/vault-protocol-v1.md */
 
+import type { CustomField, LoginCategory } from "./loginCategories.js";
+
+export type { CustomField, LoginCategory } from "./loginCategories.js";
+
 export interface LoginHistoryEntry {
   changed_at: string;
   title: string;
@@ -8,6 +12,8 @@ export interface LoginHistoryEntry {
   password: string;
   notes: string;
   folder_id: string | null;
+  category: LoginCategory;
+  custom_fields: CustomField[];
 }
 
 export const MAX_LOGIN_HISTORY_ENTRIES = 20;
@@ -20,6 +26,8 @@ export interface Login {
   password: string;
   notes: string;
   folder_id: string | null;
+  category: LoginCategory;
+  custom_fields: CustomField[];
   created_at: string;
   updated_at: string;
   /** Snapshots of prior field values, newest first, capped at MAX_LOGIN_HISTORY_ENTRIES. */
